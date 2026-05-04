@@ -24,6 +24,7 @@ public:
 
    static const std::string& sourceId();
    static const std::string& fillLayerId();
+   static const std::string& cigFillLayerId();
    static const std::string& lineLayerId();
 
 private:
