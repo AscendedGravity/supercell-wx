@@ -6,7 +6,9 @@
 #include <QMapLibre/Map>
 
 #include <QByteArray>
+#include <QImage>
 #include <QJsonDocument>
+#include <QPainter>
 #include <QString>
 #include <QVariant>
 #include <QVariantList>
@@ -20,9 +22,39 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::convective_outlook_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static const std::string kSourceId_    = "convective-outlook-source";
-static const std::string kFillLayerId_ = "convective-outlook-fill";
-static const std::string kLineLayerId_ = "convective-outlook-line";
+static const std::string kSourceId_       = "convective-outlook-source";
+static const std::string kFillLayerId_    = "convective-outlook-fill";
+static const std::string kCigFillLayerId_ = "convective-outlook-cig-fill";
+static const std::string kLineLayerId_    = "convective-outlook-line";
+
+static QImage CreateHatchPattern(int type)
+{
+   constexpr int kSize = 16;
+   constexpr int kStep = 5;
+   QImage        image(kSize, kSize, QImage::Format_ARGB32_Premultiplied);
+   image.fill(Qt::transparent);
+
+   QPainter painter(&image);
+   painter.setRenderHint(QPainter::Antialiasing, true);
+   painter.setPen(QPen(QColor(0, 0, 0, 255), 1.5));
+
+   for (int x = -kSize; x < 2 * kSize; x += kStep)
+   {
+      if (type == 1 || type == 3)
+      {
+         // Forward slash: negative slope
+         painter.drawLine(x + kSize, 0, x, kSize);
+      }
+      if (type == 2 || type == 3)
+      {
+         // Backslash: positive slope
+         painter.drawLine(x, 0, x + kSize, kSize);
+      }
+   }
+
+   painter.end();
+   return image;
+}
 
 class ConvectiveOutlookLayer::Impl
 {
@@ -114,6 +146,11 @@ const std::string& ConvectiveOutlookLayer::fillLayerId()
    return kFillLayerId_;
 }
 
+const std::string& ConvectiveOutlookLayer::cigFillLayerId()
+{
+   return kCigFillLayerId_;
+}
+
 const std::string& ConvectiveOutlookLayer::lineLayerId()
 {
    return kLineLayerId_;
@@ -149,6 +186,11 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
    auto& manager = manager::SpcOutlookManager::Instance();
    int   opacity = manager.GetOpacity();
 
+   // Register hatch pattern images for CIG fill
+   map->addImage("cig-hatch-1", CreateHatchPattern(1));
+   map->addImage("cig-hatch-2", CreateHatchPattern(2));
+   map->addImage("cig-hatch-3", CreateHatchPattern(3));
+
    // Fill color from GeoJSON property, with fallback
    // Note: wrap inner QVariantList in QVariant() to prevent flattening by
    // QList::operator<<
@@ -175,10 +217,13 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
    lineWidthExpr << "match" << QVariant(QVariantList {} << "get" << "cig_level")
                  << 0 << 1.5f << 2.5f;
 
-   // Line dash: dashed for CIG features (hatching), solid for regular
+   // Line dash: varying dash patterns per CIG type, solid for regular
    QVariantList lineDashExpr;
    lineDashExpr << "match" << QVariant(QVariantList {} << "get" << "cig_level")
-                << 0 << QVariant(QVariantList {} << 0.0 << 0.0)
+                << 0 << QVariant(QVariantList {} << 0.0 << 0.0) << 1
+                << QVariant(QVariantList {} << 4.0 << 3.0) << 2
+                << QVariant(QVariantList {} << 3.0 << 3.0) << 3
+                << QVariant(QVariantList {} << 2.0 << 3.0)
                 << QVariant(QVariantList {} << 3.0 << 3.0);
 
    // Serialize expressions to JSON strings for proper parsing by MapLibre
@@ -225,14 +270,46 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
                          QString::fromUtf8(lineDashJson));
    map->setPaintProperty(
       QString::fromStdString(kLineLayerId_), "line-opacity", opacity / 100.0);
+
+   // Add CIG fill layer with hatch patterns
+   QVariantList cigFillPatternExpr;
+   cigFillPatternExpr << "match"
+                      << QVariant(QVariantList {} << "get" << "cig_level") << 1
+                      << "cig-hatch-1" << 2 << "cig-hatch-2" << 3
+                      << "cig-hatch-3"
+                      << "";
+   QByteArray cigFillPatternJson =
+      QJsonDocument::fromVariant(QVariant(cigFillPatternExpr))
+         .toJson(QJsonDocument::Compact);
+
+   QVariantList cigFilter;
+   cigFilter << ">" << QVariant(QVariantList {} << "get" << "cig_level") << 0;
+
+   map->addLayer(
+      QString::fromStdString(kCigFillLayerId_),
+      {{"type", "fill"}, {"source", QString::fromStdString(kSourceId_)}},
+      beforeStr);
+   map->setPaintProperty(QString::fromStdString(kCigFillLayerId_),
+                         "fill-pattern",
+                         QString::fromUtf8(cigFillPatternJson));
+   map->setPaintProperty(QString::fromStdString(kCigFillLayerId_),
+                         "fill-opacity",
+                         opacity / 100.0);
+   map->setFilter(QString::fromStdString(kCigFillLayerId_),
+                  QVariant(cigFilter));
 }
 
 void ConvectiveOutlookLayer::Remove(std::shared_ptr<QMapLibre::Map> map)
 {
-   QString sourceId = QString::fromStdString(kSourceId_);
-   QString fillId   = QString::fromStdString(kFillLayerId_);
-   QString lineId   = QString::fromStdString(kLineLayerId_);
+   QString sourceId  = QString::fromStdString(kSourceId_);
+   QString fillId    = QString::fromStdString(kFillLayerId_);
+   QString cigFillId = QString::fromStdString(kCigFillLayerId_);
+   QString lineId    = QString::fromStdString(kLineLayerId_);
 
+   if (map->layerExists(cigFillId))
+   {
+      map->removeLayer(cigFillId);
+   }
    if (map->layerExists(lineId))
    {
       map->removeLayer(lineId);
@@ -245,6 +322,10 @@ void ConvectiveOutlookLayer::Remove(std::shared_ptr<QMapLibre::Map> map)
    {
       map->removeSource(sourceId);
    }
+
+   map->removeImage("cig-hatch-1");
+   map->removeImage("cig-hatch-2");
+   map->removeImage("cig-hatch-3");
 }
 
 void ConvectiveOutlookLayer::Update(std::shared_ptr<QMapLibre::Map> map)
@@ -289,6 +370,14 @@ void ConvectiveOutlookLayer::Update(std::shared_ptr<QMapLibre::Map> map)
    // Update line opacity
    map->setPaintProperty(
       QString::fromStdString(kLineLayerId_), "line-opacity", opacity / 100.0);
+
+   // Update CIG fill layer opacity
+   if (map->layerExists(QString::fromStdString(kCigFillLayerId_)))
+   {
+      map->setPaintProperty(QString::fromStdString(kCigFillLayerId_),
+                            "fill-opacity",
+                            opacity / 100.0);
+   }
 }
 
 } // namespace scwx::qt::map
