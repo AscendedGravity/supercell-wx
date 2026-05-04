@@ -29,25 +29,35 @@ static const std::string kLineLayerId_    = "convective-outlook-line";
 
 static QImage CreateHatchPattern(int type)
 {
-   constexpr int kSize = 16;
-   constexpr int kStep = 5;
+   constexpr int kSize = 32;
+   constexpr int kStep = 8;
    QImage        image(kSize, kSize, QImage::Format_ARGB32_Premultiplied);
    image.fill(Qt::transparent);
 
    QPainter painter(&image);
    painter.setRenderHint(QPainter::Antialiasing, true);
-   painter.setPen(QPen(QColor(0, 0, 0, 255), 1.5));
 
-   for (int x = -kSize; x < 2 * kSize; x += kStep)
+   if (type == 1 || type == 3)
    {
-      if (type == 1 || type == 3)
+      QPen forwardPen(QColor(0, 0, 0, 255), 1.5);
+      if (type == 1)
       {
-         // Forward slash: negative slope
+         forwardPen.setDashPattern({4.0, 3.0});
+      }
+      painter.setPen(forwardPen);
+
+      for (int x = -kSize; x < 2 * kSize; x += kStep)
+      {
          painter.drawLine(x + kSize, 0, x, kSize);
       }
-      if (type == 2 || type == 3)
+   }
+   if (type == 2 || type == 3)
+   {
+      QPen backPen(QColor(0, 0, 0, 255), 1.5);
+      painter.setPen(backPen);
+
+      for (int x = -kSize; x < 2 * kSize; x += kStep)
       {
-         // Backslash: positive slope
          painter.drawLine(x, 0, x + kSize, kSize);
       }
    }
