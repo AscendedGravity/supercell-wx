@@ -77,9 +77,12 @@ OutlookData ParseSpcGeoJson(OutlookDay         day,
 
       const auto& featObj = feature.as_object();
 
-      // Extract DN from properties
-      int32_t dn      = 0;
-      auto    propsIt = featObj.find("properties");
+      // Extract properties from GeoJSON
+      int32_t     dn = 0;
+      std::string fill;
+      std::string stroke;
+      int         cigLevel = 0;
+      auto        propsIt  = featObj.find("properties");
       if (propsIt != featObj.end() && propsIt->value().is_object())
       {
          const auto& props = propsIt->value().as_object();
@@ -87,6 +90,34 @@ OutlookData ParseSpcGeoJson(OutlookDay         day,
          if (dnIt != props.end() && dnIt->value().is_int64())
          {
             dn = static_cast<int32_t>(dnIt->value().as_int64());
+         }
+
+         auto fillIt = props.find("fill");
+         if (fillIt != props.end() && fillIt->value().is_string())
+         {
+            fill = std::string(fillIt->value().as_string());
+         }
+
+         auto strokeIt = props.find("stroke");
+         if (strokeIt != props.end() && strokeIt->value().is_string())
+         {
+            stroke = std::string(strokeIt->value().as_string());
+         }
+
+         // Detect CIG level from LABEL (e.g. "CIG1", "CIG2", "CIG3")
+         auto labelIt = props.find("LABEL");
+         if (labelIt != props.end() && labelIt->value().is_string())
+         {
+            std::string label(labelIt->value().as_string());
+            if (label.size() > 3 && label.rfind("CIG", 0) == 0)
+            {
+               // Extract the digit after "CIG"
+               char cigChar = label[3];
+               if (cigChar >= '1' && cigChar <= '3')
+               {
+                  cigLevel = cigChar - '0';
+               }
+            }
          }
       }
 
@@ -119,6 +150,9 @@ OutlookData ParseSpcGeoJson(OutlookDay         day,
       polygon.dn_              = dn;
       polygon.isProbability_   = isProbability;
       polygon.categoricalRisk_ = GetCategoricalRisk(dn);
+      polygon.fillColor_       = fill;
+      polygon.strokeColor_     = stroke;
+      polygon.cigLevel_        = cigLevel;
 
       if (geomType == "Polygon")
       {

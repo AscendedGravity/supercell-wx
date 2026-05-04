@@ -15,11 +15,8 @@ static const std::unordered_map<OutlookProduct, std::string>
    outlookProductName_ {
       {OutlookProduct::Categorical, "Categorical"},
       {OutlookProduct::Tornado, "Tornado"},
-      {OutlookProduct::SignificantTornado, "Significant Tornado"},
       {OutlookProduct::Wind, "Wind"},
-      {OutlookProduct::SignificantWind, "Significant Wind"},
       {OutlookProduct::Hail, "Hail"},
-      {OutlookProduct::SignificantHail, "Significant Hail"},
       {OutlookProduct::Probabilistic, "Probabilistic"},
       {OutlookProduct::SignificantProbabilistic, "Significant Probabilistic"},
       {OutlookProduct::Unknown, "?"}};

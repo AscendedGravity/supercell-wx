@@ -485,11 +485,8 @@ MainWindow::MainWindow(QWidget* parent) :
       case scwx::spc::OutlookDay::Day2:
          p->spcProductCombo_->addItem(tr("Categorical"));
          p->spcProductCombo_->addItem(tr("Tornado"));
-         p->spcProductCombo_->addItem(tr("Significant Tornado"));
          p->spcProductCombo_->addItem(tr("Wind"));
-         p->spcProductCombo_->addItem(tr("Significant Wind"));
          p->spcProductCombo_->addItem(tr("Hail"));
-         p->spcProductCombo_->addItem(tr("Significant Hail"));
          break;
       case scwx::spc::OutlookDay::Day3:
          p->spcProductCombo_->addItem(tr("Categorical"));
@@ -523,11 +520,8 @@ MainWindow::MainWindow(QWidget* parent) :
 
       static constexpr int kCategoricalIdx = 0;
       static constexpr int kTornadoIdx     = 1;
-      static constexpr int kSigTornadoIdx  = 2;
-      static constexpr int kWindIdx        = 3;
-      static constexpr int kSigWindIdx     = 4;
-      static constexpr int kHailIdx        = 5;
-      static constexpr int kSigHailIdx     = 6;
+      static constexpr int kWindIdx        = 2;
+      static constexpr int kHailIdx        = 3;
 
       // Day 3: Categorical=0, Probabilistic=1, SigProbabilistic=2
       if (dayIdx == 2)
@@ -545,24 +539,17 @@ MainWindow::MainWindow(QWidget* parent) :
          }
       }
 
-      // Day 1/2: Categorical=0, Tornado=1, SigTornado=2, Wind=3,
-      //          SigWind=4, Hail=5, SigHail=6
+      // Day 1/2: Categorical=0, Tornado=1, Wind=2, Hail=3
       switch (prodIdx)
       {
       case kCategoricalIdx:
          return scwx::spc::OutlookProduct::Categorical;
       case kTornadoIdx:
          return scwx::spc::OutlookProduct::Tornado;
-      case kSigTornadoIdx:
-         return scwx::spc::OutlookProduct::SignificantTornado;
       case kWindIdx:
          return scwx::spc::OutlookProduct::Wind;
-      case kSigWindIdx:
-         return scwx::spc::OutlookProduct::SignificantWind;
       case kHailIdx:
          return scwx::spc::OutlookProduct::Hail;
-      case kSigHailIdx:
-         return scwx::spc::OutlookProduct::SignificantHail;
       default:
          return scwx::spc::OutlookProduct::Categorical;
       }

@@ -23,11 +23,8 @@ enum class OutlookProduct
 {
    Categorical,
    Tornado,
-   SignificantTornado,
    Wind,
-   SignificantWind,
    Hail,
-   SignificantHail,
    Probabilistic,
    SignificantProbabilistic,
    Unknown
@@ -55,6 +52,10 @@ struct OutlookPolygon
    int32_t         dn_ {0}; // SPC DN value (risk code or probability)
    CategoricalRisk categoricalRisk_ {CategoricalRisk::Unknown};
    bool            isProbability_ {false};
+   std::string     fillColor_ {};
+   std::string     strokeColor_ {};
+   int             cigLevel_ {
+      0}; // Conditional Intensity Group: 0=none, 1=CIG1, 2=CIG2, 3=CIG3
 };
 
 struct OutlookData

@@ -57,20 +57,11 @@ std::string SpcOutlookProvider::GetOutlookUrl(OutlookDay     day,
    case OutlookProduct::Tornado:
       productStr = "torn";
       break;
-   case OutlookProduct::SignificantTornado:
-      productStr = "cigtorn";
-      break;
    case OutlookProduct::Wind:
       productStr = "wind";
       break;
-   case OutlookProduct::SignificantWind:
-      productStr = "cigwind";
-      break;
    case OutlookProduct::Hail:
       productStr = "hail";
-      break;
-   case OutlookProduct::SignificantHail:
-      productStr = "cighail";
       break;
    case OutlookProduct::Probabilistic:
       productStr = "prob";

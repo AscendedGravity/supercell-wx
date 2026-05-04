@@ -77,7 +77,17 @@ public:
          feature["geometry"]     = geometry;
 
          QVariantMap props;
-         props["dn"]           = polygon.dn_;
+         props["dn"]        = polygon.dn_;
+         props["cig_level"] = polygon.cigLevel_;
+         if (!polygon.fillColor_.empty())
+         {
+            props["fill_color"] = QString::fromStdString(polygon.fillColor_);
+         }
+         if (!polygon.strokeColor_.empty())
+         {
+            props["stroke_color"] =
+               QString::fromStdString(polygon.strokeColor_);
+         }
          feature["properties"] = props;
 
          features << QVariant(feature);
@@ -139,19 +149,53 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
    auto& manager = manager::SpcOutlookManager::Instance();
    int   opacity = manager.GetOpacity();
 
-   // Data-driven fill color based on DN property
+   // Fill color from GeoJSON property, with fallback
    // Note: wrap inner QVariantList in QVariant() to prevent flattening by
    // QList::operator<<
    QVariantList fillColorExpr;
-   fillColorExpr << "match" << QVariant(QVariantList {} << "get" << "dn") << 2
-                 << "#C1E9C1" << 3 << "#008B00" << 4 << "#FFFF00" << 5
-                 << "#FFA500" << 6 << "#FF0000" << 8 << "#FF00FF"
+   fillColorExpr << "coalesce"
+                 << QVariant(QVariantList {} << "get" << "fill_color")
                  << "#888888";
 
-   // Serialize expression to JSON string for proper parsing by MapLibre
+   // Fill opacity: transparent for CIG features (hatching overlay), normal
+   // for regular
+   QVariantList fillOpacityExpr;
+   fillOpacityExpr << "match"
+                   << QVariant(QVariantList {} << "get" << "cig_level") << 0
+                   << (opacity / 100.0) << 0.0;
+
+   // Stroke color from GeoJSON property
+   QVariantList lineColorExpr;
+   lineColorExpr << "coalesce"
+                 << QVariant(QVariantList {} << "get" << "stroke_color")
+                 << "#000000";
+
+   // Line width: thicker for CIG features
+   QVariantList lineWidthExpr;
+   lineWidthExpr << "match" << QVariant(QVariantList {} << "get" << "cig_level")
+                 << 0 << 1.5f << 2.5f;
+
+   // Line dash: dashed for CIG features (hatching), solid for regular
+   QVariantList lineDashExpr;
+   lineDashExpr << "match" << QVariant(QVariantList {} << "get" << "cig_level")
+                << 0 << QVariant(QVariantList {} << 0.0 << 0.0)
+                << QVariant(QVariantList {} << 3.0 << 3.0);
+
+   // Serialize expressions to JSON strings for proper parsing by MapLibre
    QByteArray fillColorJson =
       QJsonDocument::fromVariant(QVariant(fillColorExpr))
          .toJson(QJsonDocument::Compact);
+   QByteArray fillOpacityJson =
+      QJsonDocument::fromVariant(QVariant(fillOpacityExpr))
+         .toJson(QJsonDocument::Compact);
+   QByteArray lineColorJson =
+      QJsonDocument::fromVariant(QVariant(lineColorExpr))
+         .toJson(QJsonDocument::Compact);
+   QByteArray lineWidthJson =
+      QJsonDocument::fromVariant(QVariant(lineWidthExpr))
+         .toJson(QJsonDocument::Compact);
+   QByteArray lineDashJson = QJsonDocument::fromVariant(QVariant(lineDashExpr))
+                                .toJson(QJsonDocument::Compact);
 
    // Add fill layer
    map->addLayer(
@@ -161,8 +205,9 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
    map->setPaintProperty(QString::fromStdString(kFillLayerId_),
                          "fill-color",
                          QString::fromUtf8(fillColorJson));
-   map->setPaintProperty(
-      QString::fromStdString(kFillLayerId_), "fill-opacity", opacity / 100.0);
+   map->setPaintProperty(QString::fromStdString(kFillLayerId_),
+                         "fill-opacity",
+                         QString::fromUtf8(fillOpacityJson));
 
    // Add line layer for borders
    map->addLayer(
@@ -171,9 +216,13 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
       beforeStr);
    map->setPaintProperty(QString::fromStdString(kLineLayerId_),
                          "line-color",
-                         QString::fromUtf8(fillColorJson));
-   map->setPaintProperty(
-      QString::fromStdString(kLineLayerId_), "line-width", 1.5f);
+                         QString::fromUtf8(lineColorJson));
+   map->setPaintProperty(QString::fromStdString(kLineLayerId_),
+                         "line-width",
+                         QString::fromUtf8(lineWidthJson));
+   map->setPaintProperty(QString::fromStdString(kLineLayerId_),
+                         "line-dasharray",
+                         QString::fromUtf8(lineDashJson));
    map->setPaintProperty(
       QString::fromStdString(kLineLayerId_), "line-opacity", opacity / 100.0);
 }
@@ -224,9 +273,20 @@ void ConvectiveOutlookLayer::Update(std::shared_ptr<QMapLibre::Map> map)
       QByteArray(QJsonDocument::fromVariant(fc).toJson(QJsonDocument::Compact));
    map->updateSource(QString::fromStdString(kSourceId_), update);
 
-   // Update opacity
-   map->setPaintProperty(
-      QString::fromStdString(kFillLayerId_), "fill-opacity", opacity / 100.0);
+   // Update fill opacity (data-driven: 0 for CIG features, normal for
+   // regular)
+   QVariantList fillOpacityExpr;
+   fillOpacityExpr << "match"
+                   << QVariant(QVariantList {} << "get" << "cig_level") << 0
+                   << (opacity / 100.0) << 0.0;
+   QByteArray fillOpacityJson =
+      QJsonDocument::fromVariant(QVariant(fillOpacityExpr))
+         .toJson(QJsonDocument::Compact);
+   map->setPaintProperty(QString::fromStdString(kFillLayerId_),
+                         "fill-opacity",
+                         QString::fromUtf8(fillOpacityJson));
+
+   // Update line opacity
    map->setPaintProperty(
       QString::fromStdString(kLineLayerId_), "line-opacity", opacity / 100.0);
 }
