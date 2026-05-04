@@ -849,6 +849,7 @@ void MainWindow::on_actionOpenNexrad_triggered()
                }
                else
                {
+                  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
                   auto* messageBox = new QMessageBox(this);
                   messageBox->setIcon(QMessageBox::Warning);
                   messageBox->setText(
@@ -1057,6 +1058,7 @@ void MainWindow::on_actionCheckForUpdates_triggered()
                   this,
                   [this]()
                   {
+                     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
                      auto* messageBox = new QMessageBox(this);
                      messageBox->setIcon(QMessageBox::Icon::Information);
                      messageBox->setWindowTitle(tr("Check for Updates"));
@@ -1133,6 +1135,7 @@ void MainWindowImpl::ConfigureMapLayout()
 
    size_t mapIndex = 0;
 
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
    auto* vs = new QSplitter(Qt::Vertical);
    vs->setHandleWidth(1);
 
@@ -1154,6 +1157,7 @@ void MainWindowImpl::ConfigureMapLayout()
 
    for (int64_t y = 0; y < gridHeight; y++)
    {
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
       auto* hs = new QSplitter(vs);
       hs->setHandleWidth(1);
 
