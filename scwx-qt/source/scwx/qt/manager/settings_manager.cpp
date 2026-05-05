@@ -7,6 +7,7 @@
 #include <scwx/qt/settings/hotkey_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
+#include <scwx/qt/settings/radar_preset_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
@@ -161,6 +162,7 @@ boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
    settings::HotkeySettings::Instance().WriteJson(settingsJson);
    settings::MapSettings::Instance().WriteJson(settingsJson);
    settings::PaletteSettings::Instance().WriteJson(settingsJson);
+   settings::RadarPresetSettings::Instance().WriteJson(settingsJson);
    settings::ProductSettings::Instance().WriteJson(settingsJson);
    settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
@@ -179,6 +181,7 @@ void SettingsManager::Impl::GenerateDefaultSettings()
    settings::HotkeySettings::Instance().SetDefaults();
    settings::MapSettings::Instance().SetDefaults();
    settings::PaletteSettings::Instance().SetDefaults();
+   settings::RadarPresetSettings::Instance().SetDefaults();
    settings::ProductSettings::Instance().SetDefaults();
    settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
@@ -199,6 +202,8 @@ bool SettingsManager::Impl::LoadSettings(
    jsonDirty |= !settings::HotkeySettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::MapSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::PaletteSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |=
+      !settings::RadarPresetSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::ProductSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);

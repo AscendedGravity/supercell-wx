@@ -211,7 +211,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
                  source/scwx/qt/settings/line_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
-                 source/scwx/qt/settings/product_settings.hpp
+                  source/scwx/qt/settings/product_settings.hpp
+                  source/scwx/qt/settings/radar_preset_settings.hpp
                  source/scwx/qt/settings/radar_site_status_palette_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
@@ -232,7 +233,8 @@ set(SRC_SETTINGS source/scwx/qt/settings/alert_palette_settings.cpp
                  source/scwx/qt/settings/line_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
-                 source/scwx/qt/settings/product_settings.cpp
+                  source/scwx/qt/settings/product_settings.cpp
+                  source/scwx/qt/settings/radar_preset_settings.cpp
                  source/scwx/qt/settings/radar_site_status_palette_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
                  source/scwx/qt/settings/settings_container.cpp
