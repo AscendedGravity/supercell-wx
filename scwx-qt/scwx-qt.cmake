@@ -120,6 +120,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/radar_site_status_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
+                source/scwx/qt/manager/spc_outlook_manager.hpp
                 source/scwx/qt/manager/task_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/thread_manager.hpp
@@ -141,6 +142,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/radar_site_status_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
+                source/scwx/qt/manager/spc_outlook_manager.cpp
                 source/scwx/qt/manager/task_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
                 source/scwx/qt/manager/thread_manager.cpp
@@ -149,6 +151,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                  source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/color_table_layer.hpp
+            source/scwx/qt/map/convective_outlook_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
@@ -166,6 +169,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/color_table_layer.cpp
+            source/scwx/qt/map/convective_outlook_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
@@ -221,6 +225,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
                  source/scwx/qt/settings/settings_interface_base.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp
+                 source/scwx/qt/settings/spc_outlook_settings.hpp
                  source/scwx/qt/settings/text_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp
                  source/scwx/qt/settings/unit_settings.hpp)
@@ -242,6 +247,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/alert_palette_settings.cpp
                  source/scwx/qt/settings/settings_interface_base.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp
+                 source/scwx/qt/settings/spc_outlook_settings.cpp
                  source/scwx/qt/settings/text_settings.cpp
                  source/scwx/qt/settings/ui_settings.cpp
                  source/scwx/qt/settings/unit_settings.cpp)
@@ -564,6 +570,8 @@ source_group("Header Files\\gl\\draw"     FILES ${HDR_GL_DRAW})
 source_group("Source Files\\gl\\draw"     FILES ${SRC_GL_DRAW})
 source_group("Header Files\\manager"      FILES ${HDR_MANAGER})
 source_group("Source Files\\manager"      FILES ${SRC_MANAGER})
+source_group("Header Files\\map"          FILES ${HDR_MAP})
+source_group("Source Files\\map"          FILES ${SRC_MAP})
 source_group("UI Files\\main"             FILES ${UI_MAIN})
 source_group("Header Files\\map"          FILES ${HDR_MAP})
 source_group("Source Files\\map"          FILES ${SRC_MAP})
