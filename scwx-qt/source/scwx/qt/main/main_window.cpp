@@ -961,7 +961,8 @@ void MainWindow::on_radarSiteHomeButton_clicked()
 
    for (map::MapWidget* map : p->maps_)
    {
-      map->SelectRadarSite(homeRadarSite);
+      if (map->isVisible())
+         map->SelectRadarSite(homeRadarSite);
    }
 
    p->UpdateRadarSite();
@@ -1810,7 +1811,8 @@ void MainWindowImpl::ConnectAnimationSignalsForWidget(map::MapWidget* mapWidget,
            {
               for (map::MapWidget* map : maps_)
               {
-                 map->SelectRadarSite(id, updateCoordinates);
+                 if (map->isVisible())
+                    map->SelectRadarSite(id, updateCoordinates);
               }
 
               UpdateRadarSite();
@@ -2042,7 +2044,8 @@ void MainWindowImpl::ConnectOtherSignals()
 
               for (map::MapWidget* map : maps_)
               {
-                 map->SelectRadarSite(selectedRadarSite);
+                 if (map->isVisible())
+                    map->SelectRadarSite(selectedRadarSite);
               }
 
               UpdateRadarSite();
@@ -2255,7 +2258,8 @@ void MainWindowImpl::AddRadarSitePreset(const std::string& siteId)
            {
               for (map::MapWidget* map : maps_)
               {
-                 map->SelectRadarSite(siteId);
+                 if (map->isVisible())
+                    map->SelectRadarSite(siteId);
               }
 
               UpdateRadarSite();
