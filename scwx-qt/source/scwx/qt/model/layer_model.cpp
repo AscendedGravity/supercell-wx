@@ -76,13 +76,13 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
    {.type_        = types::LayerType::Radar,
     .description_ = std::monostate {},
     .movable_     = true},
-   {.type_        = types::LayerType::Map,
-    .description_ = types::MapLayer::MapUnderlay,
-    .movable_     = false},
    {.type_        = types::LayerType::ConvectiveOutlook,
     .description_ = types::ConvectiveOutlookDay::Day1,
     .movable_     = true,
     .displayed_   = {false}},
+   {.type_        = types::LayerType::Map,
+    .description_ = types::MapLayer::MapUnderlay,
+    .movable_     = false},
 };
 
 static const std::vector<types::LayerInfo> kImmovableLayers_ {
