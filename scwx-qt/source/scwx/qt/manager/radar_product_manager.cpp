@@ -1946,6 +1946,18 @@ RadarProductManager::GetStormMotionVector(
                units::velocity::knots<float> {
                   stiRecord->speed_.value().value()}};
          }
+         else
+         {
+            // Fall back to NST message defaults when no storm cell is tracked
+            auto defaultDir = stiMessage->default_direction();
+            auto defaultSpd = stiMessage->default_speed();
+            if (defaultDir.has_value() && defaultSpd.has_value())
+            {
+               stormMotion = common::StormMotionVector {
+                  units::angle::degrees<float> {defaultDir->value()},
+                  *defaultSpd};
+            }
+         }
       }
    }
 

@@ -38,12 +38,17 @@ static constexpr uint16_t RANGE_FOLDED      = 1u;
 static constexpr uint32_t VERTICES_PER_BIN  = 6u;
 static constexpr uint32_t VALUES_PER_VERTEX = 2u;
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+static constexpr float kKnotsToMps = 0.514444f;
+
 static const std::unordered_map<common::Level2Product,
                                 wsr88d::rda::DataBlockType>
    blockTypes_ {
       {common::Level2Product::Reflectivity,
        wsr88d::rda::DataBlockType::MomentRef},
       {common::Level2Product::Velocity, wsr88d::rda::DataBlockType::MomentVel},
+      {common::Level2Product::StormRelativeVelocity,
+       wsr88d::rda::DataBlockType::MomentVel},
       {common::Level2Product::SpectrumWidth,
        wsr88d::rda::DataBlockType::MomentSw},
       {common::Level2Product::DifferentialReflectivity,
@@ -512,10 +517,6 @@ void Level2ProductView::Impl::SetProduct(common::Level2Product product)
    {
       // Default to CC for HCA/TDS to ensure we get a dual-pol scan
       dataBlockType_ = wsr88d::rda::DataBlockType::MomentRho;
-   }
-   else if (product == common::Level2Product::StormRelativeVelocity)
-   {
-      dataBlockType_ = wsr88d::rda::DataBlockType::MomentVel;
    }
    else
    {
@@ -1059,7 +1060,7 @@ void Level2ProductView::ComputeSweep()
                      const float thetaRad = (az.value() - srvStormDirDeg) *
                                             static_cast<float>(M_PI) / 180.0f;
                      const float radialMps =
-                        srvStormSpeedKts * 0.514444f * std::cos(thetaRad);
+                        srvStormSpeedKts * kKnotsToMps * std::cos(thetaRad);
                      const float rawDelta = radialMps * momentData->scale();
                      dataValue = static_cast<std::uint8_t>(std::clamp(
                         static_cast<float>(rawVel) - rawDelta, 0.0f, 255.0f));
@@ -1177,7 +1178,7 @@ void Level2ProductView::ComputeSweep()
                      const float thetaRad = (az.value() - srvStormDirDeg) *
                                             static_cast<float>(M_PI) / 180.0f;
                      const float radialMps =
-                        srvStormSpeedKts * 0.514444f * std::cos(thetaRad);
+                        srvStormSpeedKts * kKnotsToMps * std::cos(thetaRad);
                      const float rawDelta = radialMps * momentData->scale();
                      dataValue16 = static_cast<std::uint16_t>(std::clamp(
                         static_cast<float>(rawVel) - rawDelta, 0.0f, 65535.0f));
@@ -1790,12 +1791,13 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
       return std::nullopt;
    }
 
-   // Compute threshold at which to display an individual bin (minimum of 2)
-   const std::uint16_t snrThreshold =
-      std::max<std::int16_t>(2, momentData->snr_threshold_raw());
    bool isHca = p->product_ == common::Level2Product::HydrometeorClassification;
    bool isTds = p->product_ == common::Level2Product::TornadoDebrisSignature;
    bool isSrv = p->product_ == common::Level2Product::StormRelativeVelocity;
+
+   // Compute threshold at which to display an individual bin (minimum of 2)
+   const std::uint16_t snrThreshold =
+      (isSrv) ? 2 : std::max<std::int16_t>(2, momentData->snr_threshold_raw());
    std::uint16_t level;
 
    if (isHca || isTds)
@@ -1870,7 +1872,7 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
             const float                 thetaRad =
                (az.value() - srvDirDeg) * static_cast<float>(M_PI) / 180.0f;
             const float radialMps =
-               srvSpeedKts * 0.514444f * std::cos(thetaRad);
+               srvSpeedKts * kKnotsToMps * std::cos(thetaRad);
             const float rawDelta = radialMps * momentData->scale();
             level                = static_cast<std::uint16_t>(std::clamp(
                static_cast<float>(level) - rawDelta, 0.0f, 65535.0f));
