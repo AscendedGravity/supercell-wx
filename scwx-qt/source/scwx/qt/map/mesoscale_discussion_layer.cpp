@@ -171,7 +171,7 @@ void MesoscaleDiscussionLayer::Impl::BuildGeometry()
                }
             }
 
-            // Fill segment
+            // Fill segment (pickable — wide hit zone)
             auto fillDi = geoLines_->AddLine();
             geoLines_->SetLineLocation(fillDi,
                                        static_cast<float>(ring[i].first),
@@ -181,7 +181,25 @@ void MesoscaleDiscussionLayer::Impl::BuildGeometry()
             geoLines_->SetLineModulate(fillDi, kFillColor_);
             geoLines_->SetLineWidth(fillDi, 10.0f);
 
-            // Border segment (pickable)
+            // Register hover/click on fill lines (wide area)
+            geoLines_->SetLineHoverCallback(
+               fillDi,
+               std::bind(&MesoscaleDiscussionLayer::Impl::HandleGeoLinesHover,
+                         this,
+                         std::placeholders::_1,
+                         std::placeholders::_2));
+
+            const std::weak_ptr<gl::draw::GeoLineDrawItem> fillDiWeak = fillDi;
+            gl::draw::GeoLines::RegisterEventHandler(
+               fillDi,
+               std::bind(&MesoscaleDiscussionLayer::Impl::HandleGeoLinesEvent,
+                         this,
+                         fillDiWeak,
+                         std::placeholders::_1));
+
+            lineToMd_[fillDi] = md.mdNumber_;
+
+            // Border segment (purely visual — no callbacks)
             auto lineDi = geoLines_->AddLine();
             geoLines_->SetLineLocation(lineDi,
                                        static_cast<float>(ring[i].first),
@@ -190,24 +208,6 @@ void MesoscaleDiscussionLayer::Impl::BuildGeometry()
                                        static_cast<float>(ring[j].second));
             geoLines_->SetLineModulate(lineDi, kLineColor_);
             geoLines_->SetLineWidth(lineDi, 2.0f);
-
-            // Register hover/click on border lines
-            geoLines_->SetLineHoverCallback(
-               lineDi,
-               std::bind(&MesoscaleDiscussionLayer::Impl::HandleGeoLinesHover,
-                         this,
-                         std::placeholders::_1,
-                         std::placeholders::_2));
-
-            const std::weak_ptr<gl::draw::GeoLineDrawItem> lineDiWeak = lineDi;
-            gl::draw::GeoLines::RegisterEventHandler(
-               lineDi,
-               std::bind(&MesoscaleDiscussionLayer::Impl::HandleGeoLinesEvent,
-                         this,
-                         lineDiWeak,
-                         std::placeholders::_1));
-
-            lineToMd_[lineDi] = md.mdNumber_;
          }
       }
    }
