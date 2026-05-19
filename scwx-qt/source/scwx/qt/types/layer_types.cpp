@@ -306,11 +306,19 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
 
 ConvectiveOutlookDay GetConvectiveOutlookDay(const std::string& name)
 {
+   if (name == "Convective Outlook Day 1-3")
+   {
+      return ConvectiveOutlookDay::Day1;
+   }
    return scwx::spc::GetOutlookDay(name);
 }
 
 std::string GetConvectiveOutlookDayName(ConvectiveOutlookDay day)
 {
+   if (day == ConvectiveOutlookDay::Day1)
+   {
+      return "Convective Outlook Day 1-3";
+   }
    return scwx::spc::GetOutlookDayName(day);
 }
 
