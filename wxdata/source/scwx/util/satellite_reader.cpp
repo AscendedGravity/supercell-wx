@@ -176,21 +176,65 @@ std::optional<SatelliteData> SatelliteReader::ReadMem(const std::string& data,
       y_vals[i] = y_vals[i] * y_scale + y_offset;
    }
 
-   // Query CMIP scaling attributes and fill value
-   short fill_value = -1;
-   nc_get_att_short(ncid, cmip_varid, "_FillValue", &fill_value);
+   // Query CMI variable type and read data
+   // Supports both short-packed (with scale_factor/add_offset) and
+   // float/double-stored (already in physical units) CMI data
+   nc_type cmip_type;
+   nc_inq_vartype(ncid, cmip_varid, &cmip_type);
 
-   double cmip_scale  = 1.0;
-   double cmip_offset = 0.0;
-   nc_get_att_double(ncid, cmip_varid, "scale_factor", &cmip_scale);
-   nc_get_att_double(ncid, cmip_varid, "add_offset", &cmip_offset);
+   std::vector<double> cmip_values(ny * nx);
+   bool                read_ok = false;
 
-   // Read raw CMIP 2D array
-   std::vector<short> cmip_raw(ny * nx);
-   int read_status = nc_get_var_short(ncid, cmip_varid, cmip_raw.data());
-   if (read_status != NC_NOERR)
+   if (cmip_type == NC_FLOAT)
    {
-      logger_->error("Failed to read raw CMIP data. status={}", read_status);
+      std::vector<float> cmip_raw(ny * nx);
+      if (nc_get_var_float(ncid, cmip_varid, cmip_raw.data()) == NC_NOERR)
+      {
+         std::copy(cmip_raw.begin(), cmip_raw.end(), cmip_values.begin());
+         read_ok = true;
+      }
+      else
+      {
+         logger_->error("Failed to read CMI data as NC_FLOAT");
+      }
+   }
+   else if (cmip_type == NC_DOUBLE)
+   {
+      if (nc_get_var_double(ncid, cmip_varid, cmip_values.data()) == NC_NOERR)
+      {
+         read_ok = true;
+      }
+      else
+      {
+         logger_->error("Failed to read CMI data as NC_DOUBLE");
+      }
+   }
+   else // NC_SHORT (and other packed integer types)
+   {
+      double cmip_scale  = 1.0;
+      double cmip_offset = 0.0;
+      nc_get_att_double(ncid, cmip_varid, "scale_factor", &cmip_scale);
+      nc_get_att_double(ncid, cmip_varid, "add_offset", &cmip_offset);
+
+      std::vector<short> cmip_raw(ny * nx);
+      if (nc_get_var_short(ncid, cmip_varid, cmip_raw.data()) == NC_NOERR)
+      {
+         for (size_t i = 0; i < cmip_values.size(); ++i)
+         {
+            cmip_values[i] = cmip_raw[i] * cmip_scale + cmip_offset;
+         }
+         read_ok = true;
+      }
+      else
+      {
+         logger_->error("Failed to read CMI data as NC_SHORT");
+      }
+   }
+
+   if (!read_ok)
+   {
+      logger_->error("Failed to read CMI variable data (NetCDF type={})",
+                     static_cast<int>(cmip_type));
       nc_close(ncid);
       return std::nullopt;
    }
@@ -259,8 +303,17 @@ std::optional<SatelliteData> SatelliteReader::ReadMem(const std::string& data,
          size_t x0_idx = c * step;
          size_t x1_idx = std::min((c + 1) * step, nx - 1);
 
-         short raw_val = cmip_raw[y0_idx * nx + x0_idx];
-         if (raw_val == fill_value)
+         double raw_val = cmip_values[y0_idx * nx + x0_idx];
+
+         // Skip fill/invalid values using physical-range check.
+         // For short-packed data, fill values unpack to far-outside values;
+         // for float-stored data, fill values are typically NaN or very
+         // negative numbers like -999.0.
+         if (isInfrared && (raw_val < 50.0 || raw_val > 400.0))
+         {
+            continue;
+         }
+         if (!isInfrared && (raw_val < -0.5 || raw_val > 2.0))
          {
             continue;
          }
@@ -278,18 +331,17 @@ std::optional<SatelliteData> SatelliteReader::ReadMem(const std::string& data,
             continue;
          }
 
-         double       unpacked   = raw_val * cmip_scale + cmip_offset;
          std::uint8_t moment_val = 0;
 
          if (isInfrared)
          {
-            double t   = std::clamp(unpacked, 180.0, 330.0);
+            double t   = std::clamp(raw_val, 180.0, 330.0);
             moment_val = static_cast<std::uint8_t>(
                std::round((330.0 - t) / 150.0 * 255.0));
          }
          else
          {
-            double ref = std::clamp(unpacked, 0.0, 1.0);
+            double ref = std::clamp(raw_val, 0.0, 1.0);
             moment_val = static_cast<std::uint8_t>(std::round(ref * 255.0));
          }
 

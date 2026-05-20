@@ -1118,7 +1118,40 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
       }
       else if (update)
       {
-         radarProductView->Update();
+         if (group == common::RadarProductGroup::Satellite)
+         {
+            // When switching satellite bands, reload the color table since the
+            // palette type (VIS / WV / IR) may differ between bands.
+            // Note: SatelliteProductView::SelectProduct() (called at line 1080)
+            // already calls Update() internally, so we must NOT call
+            // radarProductView->Update() here to avoid double-fetching data
+            // and a stale-frame visual artifact.
+            const std::string palette =
+               ((common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band01 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band06) ?
+                   "SAT_VIS" :
+                (common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band08 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band10) ?
+                   "SAT_WV" :
+                   "SAT_IR");
+
+            auto& paletteSetting =
+               settings::PaletteSettings::Instance().palette(palette);
+
+            p->colorPaletteConnection_ =
+               paletteSetting.changed_signal().connect(
+                  [this, palette](auto&&...) { p->UpdateColorTable(palette); });
+
+            p->UpdateColorTable(palette);
+         }
+         else
+         {
+            radarProductView->Update();
+         }
       }
    }
 

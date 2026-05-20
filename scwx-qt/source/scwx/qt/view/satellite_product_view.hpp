@@ -33,6 +33,8 @@ public:
    [[nodiscard]] std::string               units() const override;
    [[nodiscard]] std::uint16_t             vcp() const override;
    [[nodiscard]] const std::vector<float>& vertices() const override;
+   [[nodiscard]] std::chrono::system_clock::time_point
+   sweep_time() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
    void SelectProduct(const std::string& productName) override;

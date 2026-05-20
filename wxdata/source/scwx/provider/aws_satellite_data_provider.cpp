@@ -127,69 +127,84 @@ std::tuple<bool, size_t, size_t> AwsSatelliteDataProvider::ListObjects(
    request.SetBucket(kSatelliteBucketName_);
    request.SetPrefix(prefix);
 
-   auto outcome = p->client_->ListObjectsV2(request);
-
    size_t newObjects   = 0;
    size_t totalObjects = 0;
+   bool   success      = false;
+   bool   isTruncated  = false;
 
-   if (outcome.IsSuccess())
+   // GOES-19 CONUS produces ~4600 files/day across all bands.
+   // ListObjectsV2 returns at most 1000 per page. Paginate until done.
+   std::string channelFilter = fmt::format("C{:02d}", (int) p->band_ + 1);
+
+   do
    {
-      auto& objects = outcome.GetResult().GetContents();
-      logger_->debug("Found {} total objects for prefix", objects.size());
+      auto outcome = p->client_->ListObjectsV2(request);
 
-      // Format to filter for: -M<ScanMode>C<BandName>_
-      // Filename format: OR_ABI-L2-CMIPC-M6C13_G19_s...
-      std::string channelFilter = fmt::format("C{:02d}", (int) p->band_ + 1);
+      if (outcome.IsSuccess())
+      {
+         success = true;
 
-      std::unique_lock lock(p->objectsMutex_);
+         auto& objects = outcome.GetResult().GetContents();
+         logger_->debug("Found {} objects for prefix page", objects.size());
 
-      std::for_each(
-         objects.cbegin(),
-         objects.cend(),
-         [&](const Aws::S3::Model::Object& object)
-         {
-            std::string key = object.GetKey();
+         std::unique_lock lock(p->objectsMutex_);
 
-            // Filter for files corresponding to our selected band
-            if (key.find(channelFilter) != std::string::npos &&
-                key.ends_with(".nc"))
+         std::for_each(
+            objects.cbegin(),
+            objects.cend(),
+            [&](const Aws::S3::Model::Object& object)
             {
-               auto time = GetTimePointFromKey(key);
-               if (time.time_since_epoch().count() > 0)
+               std::string key = object.GetKey();
+
+               // Filter for files corresponding to our selected band
+               if (key.find(channelFilter) != std::string::npos &&
+                   key.ends_with(".nc"))
                {
-                  std::chrono::seconds lastModifiedSeconds {
-                     object.GetLastModified().Seconds()};
-                  std::chrono::system_clock::time_point lastModified {
-                     lastModifiedSeconds};
-
-                  auto [it, inserted] = p->objects_.insert_or_assign(
-                     time, Impl::ObjectRecord {key, lastModified});
-
-                  if (inserted)
+                  auto time = GetTimePointFromKey(key);
+                  if (time.time_since_epoch().count() > 0)
                   {
-                     newObjects++;
+                     std::chrono::seconds lastModifiedSeconds {
+                        object.GetLastModified().Seconds()};
+                     std::chrono::system_clock::time_point lastModified {
+                        lastModifiedSeconds};
+
+                     auto [it, inserted] = p->objects_.insert_or_assign(
+                        time, Impl::ObjectRecord {key, lastModified});
+
+                     if (inserted)
+                     {
+                        newObjects++;
+                     }
+                     totalObjects++;
                   }
-                  totalObjects++;
                }
-            }
-         });
+            });
 
-      // Update date cache
-      p->objectDates_.remove(day);
-      p->objectDates_.push_back(day);
+         isTruncated = outcome.GetResult().GetIsTruncated();
+         if (isTruncated)
+         {
+            request.SetContinuationToken(
+               outcome.GetResult().GetNextContinuationToken());
+         }
+      }
+      else
+      {
+         logger_->warn("Could not list objects: {}",
+                       outcome.GetError().GetMessage());
+         isTruncated = false;
+      }
+   } while (isTruncated);
 
-      logger_->debug("ListObjects completed: {} new, {} total for band {}",
-                     newObjects,
-                     totalObjects,
-                     p->bandName_);
-   }
-   else
-   {
-      logger_->warn("Could not list objects: {}",
-                    outcome.GetError().GetMessage());
-   }
+   // Update date cache
+   p->objectDates_.remove(day);
+   p->objectDates_.push_back(day);
 
-   return {outcome.IsSuccess(), newObjects, totalObjects};
+   logger_->debug("ListObjects completed: {} new, {} total for band {}",
+                  newObjects,
+                  totalObjects,
+                  p->bandName_);
+
+   return {success, newObjects, totalObjects};
 }
 
 std::vector<std::chrono::system_clock::time_point>

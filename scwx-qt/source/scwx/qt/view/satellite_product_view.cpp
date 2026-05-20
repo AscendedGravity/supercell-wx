@@ -34,6 +34,8 @@ public:
    std::vector<std::uint8_t>              moments_ {};
    std::shared_ptr<common::ColorTable>    colorTable_ {nullptr};
    std::vector<boost::gil::rgba8_pixel_t> colorTableLut_ {};
+
+   std::chrono::system_clock::time_point sweepTime_ {};
 };
 
 SatelliteProductView::SatelliteProductView(
@@ -91,6 +93,11 @@ std::uint16_t SatelliteProductView::vcp() const
 const std::vector<float>& SatelliteProductView::vertices() const
 {
    return p->vertices_;
+}
+
+std::chrono::system_clock::time_point SatelliteProductView::sweep_time() const
+{
+   return p->sweepTime_;
 }
 
 void SatelliteProductView::LoadColorTable(
@@ -336,6 +343,10 @@ void SatelliteProductView::ComputeSweep()
             {
                p->vertices_ = std::move(satelliteData->vertices);
                p->moments_  = std::move(satelliteData->moments);
+
+               p->sweepTime_ =
+                  provider::AwsSatelliteDataProvider::GetTimePointFromKey(
+                     latestKey);
 
                UpdateColorTableLut();
 
