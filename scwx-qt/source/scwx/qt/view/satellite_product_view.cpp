@@ -19,8 +19,8 @@ public:
    }
    ~Impl() { threadPool_.join(); }
 
-   SatelliteProductView*              self_;
-   common::SatelliteBand              band_;
+   SatelliteProductView* self_;
+   common::SatelliteBand band_;
 
    boost::asio::thread_pool threadPool_ {1u};
 
