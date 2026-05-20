@@ -1,6 +1,5 @@
 #include <scwx/qt/view/satellite_product_view.hpp>
-#include <scwx/provider/aws_satellite_data_provider.hpp>
-#include <scwx/util/satellite_reader.hpp>
+#include <scwx/qt/manager/satellite_manager.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <boost/asio.hpp>
@@ -15,18 +14,13 @@ class SatelliteProductView::Impl
 {
 public:
    explicit Impl(SatelliteProductView* self, common::SatelliteBand band) :
-       self_ {self}, band_ {band}, provider_ {band}
+       self_ {self}, band_ {band}
    {
    }
-   ~Impl()
-   {
-      provider_.Shutdown();
-      threadPool_.join();
-   }
+   ~Impl() { threadPool_.join(); }
 
    SatelliteProductView*              self_;
    common::SatelliteBand              band_;
-   provider::AwsSatelliteDataProvider provider_;
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -36,6 +30,9 @@ public:
    std::vector<boost::gil::rgba8_pixel_t> colorTableLut_ {};
 
    std::chrono::system_clock::time_point sweepTime_ {};
+
+   std::shared_ptr<manager::SatelliteManager> satelliteManager_ {};
+   QMetaObject::Connection                    dataUpdatedConnection_ {};
 };
 
 SatelliteProductView::SatelliteProductView(
@@ -112,8 +109,7 @@ void SatelliteProductView::SelectProduct(const std::string& productName)
    common::SatelliteBand newBand = common::GetSatelliteBand(productName);
    if (newBand != common::SatelliteBand::Unknown)
    {
-      p->band_     = newBand;
-      p->provider_ = provider::AwsSatelliteDataProvider(newBand);
+      p->band_ = newBand;
       Update();
    }
 }
@@ -168,9 +164,39 @@ boost::asio::thread_pool& SatelliteProductView::thread_pool()
    return p->threadPool_;
 }
 
-void SatelliteProductView::ConnectRadarProductManager() {}
+void SatelliteProductView::ConnectRadarProductManager()
+{
+   p->satelliteManager_ = manager::SatelliteManager::Instance();
 
-void SatelliteProductView::DisconnectRadarProductManager() {}
+   p->dataUpdatedConnection_ = QObject::connect(
+      p->satelliteManager_.get(),
+      &manager::SatelliteManager::DataUpdated,
+      this,
+      [this](common::SatelliteBand band)
+      {
+         if (band == p->band_)
+         {
+            // Copy cached data from manager
+            p->vertices_  = p->satelliteManager_->vertices();
+            p->moments_   = p->satelliteManager_->moments();
+            p->sweepTime_ = p->satelliteManager_->sweep_time();
+
+            UpdateColorTableLut();
+
+            set_load_status(types::RadarProductLoadStatus::ProductLoaded);
+            Q_EMIT SweepComputed();
+         }
+      });
+}
+
+void SatelliteProductView::DisconnectRadarProductManager()
+{
+   if (p->satelliteManager_ != nullptr)
+   {
+      QObject::disconnect(p->dataUpdatedConnection_);
+      p->satelliteManager_.reset();
+   }
+}
 
 void SatelliteProductView::UpdateColorTableLut()
 {
@@ -306,62 +332,33 @@ void SatelliteProductView::ComputeSweep()
 {
    logger_->trace("ComputeSweep()");
 
-   set_load_status(types::RadarProductLoadStatus::LoadingProduct);
-
-   auto now = std::chrono::system_clock::now();
-   logger_->info("Querying available satellite scenes for band {}",
-                 common::GetSatelliteBandName(p->band_));
-
-   auto [success, newObjects, totalObjects] = p->provider_.ListObjects(now);
-   if (!success || totalObjects == 0)
+   if (p->satelliteManager_ == nullptr)
    {
-      logger_->warn(
-         "Could not list satellite scenes for today, trying yesterday...");
-      auto yesterday = now - std::chrono::hours(24);
-      std::tie(success, newObjects, totalObjects) =
-         p->provider_.ListObjects(yesterday);
+      set_load_status(types::RadarProductLoadStatus::ProductNotAvailable);
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotAvailable);
+      return;
    }
 
-   if (success && totalObjects > 0)
+   // Check if the manager has data for our band
+   if (p->satelliteManager_->active_band() == p->band_)
    {
-      std::string latestKey = p->provider_.FindLatestKey();
-      if (!latestKey.empty())
+      p->vertices_  = p->satelliteManager_->vertices();
+      p->moments_   = p->satelliteManager_->moments();
+      p->sweepTime_ = p->satelliteManager_->sweep_time();
+
+      if (!p->vertices_.empty())
       {
-         logger_->info("Downloading latest GOES-19 satellite scene: {}",
-                       latestKey);
-         std::string data = p->provider_.DownloadObject(latestKey);
-         if (!data.empty())
-         {
-            logger_->info("Successfully downloaded satellite scene ({} bytes)",
-                          data.size());
-
-            bool isInfrared = (p->band_ >= common::SatelliteBand::Band07 &&
-                               p->band_ <= common::SatelliteBand::Band16);
-            auto satelliteData =
-               util::SatelliteReader::ReadMem(data, isInfrared);
-            if (satelliteData.has_value())
-            {
-               p->vertices_ = std::move(satelliteData->vertices);
-               p->moments_  = std::move(satelliteData->moments);
-
-               p->sweepTime_ =
-                  provider::AwsSatelliteDataProvider::GetTimePointFromKey(
-                     latestKey);
-
-               UpdateColorTableLut();
-
-               set_load_status(types::RadarProductLoadStatus::ProductLoaded);
-               Q_EMIT SweepComputed();
-               return;
-            }
-         }
+         UpdateColorTableLut();
+         set_load_status(types::RadarProductLoadStatus::ProductLoaded);
+         Q_EMIT SweepComputed();
+         return;
       }
    }
 
-   logger_->error("Failed to load satellite scene for band {}",
-                  common::GetSatelliteBandName(p->band_));
-   set_load_status(types::RadarProductLoadStatus::ProductNotAvailable);
-   Q_EMIT SweepNotComputed(types::NoUpdateReason::NotAvailable);
+   // If no data yet, set loading status — the manager's async fetch
+   // will trigger DataUpdated which the connection in
+   // ConnectRadarProductManager handles
+   set_load_status(types::RadarProductLoadStatus::LoadingProduct);
 }
 
 } // namespace scwx::qt::view

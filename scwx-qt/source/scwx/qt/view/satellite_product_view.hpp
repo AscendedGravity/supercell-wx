@@ -5,6 +5,11 @@
 
 #include <memory>
 
+namespace scwx::qt::manager
+{
+class SatelliteManager;
+}
+
 namespace scwx::qt::view
 {
 

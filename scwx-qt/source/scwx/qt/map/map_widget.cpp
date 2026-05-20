@@ -4,6 +4,7 @@
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/satellite_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
@@ -440,6 +441,12 @@ void MapWidgetImpl::ConnectSignals()
 {
    connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileUpdated,
+           widget_,
+           static_cast<void (QWidget::*)()>(&QWidget::update));
+
+   auto satelliteManager = manager::SatelliteManager::Instance();
+   connect(satelliteManager.get(),
+           &manager::SatelliteManager::DataUpdated,
            widget_,
            static_cast<void (QWidget::*)()>(&QWidget::update));
 
@@ -1157,8 +1164,21 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (p->autoRefreshEnabled_)
    {
-      p->radarProductManager_->EnableRefresh(
-         group, productName, true, p->uuid_);
+      if (group == common::RadarProductGroup::Satellite)
+      {
+         auto satelliteManager      = manager::SatelliteManager::Instance();
+         common::SatelliteBand band = common::GetSatelliteBand(productName);
+         if (band != common::SatelliteBand::Unknown)
+         {
+            satelliteManager->SelectBand(band);
+            satelliteManager->EnableRefresh(true);
+         }
+      }
+      else
+      {
+         p->radarProductManager_->EnableRefresh(
+            group, productName, true, p->uuid_);
+      }
    }
 }
 
@@ -1293,11 +1313,20 @@ void MapWidget::SetAutoRefresh(bool enabled)
 
       if (p->autoRefreshEnabled_ && radarProductView != nullptr)
       {
-         p->radarProductManager_->EnableRefresh(
-            radarProductView->GetRadarProductGroup(),
-            radarProductView->GetRadarProductName(),
-            true,
-            p->uuid_);
+         if (radarProductView->GetRadarProductGroup() ==
+             common::RadarProductGroup::Satellite)
+         {
+            auto satelliteManager = manager::SatelliteManager::Instance();
+            satelliteManager->EnableRefresh(true);
+         }
+         else
+         {
+            p->radarProductManager_->EnableRefresh(
+               radarProductView->GetRadarProductGroup(),
+               radarProductView->GetRadarProductName(),
+               true,
+               p->uuid_);
+         }
       }
 
       p->context_->overlay_product_view()->SetAutoRefresh(enabled);
