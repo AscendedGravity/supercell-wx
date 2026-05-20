@@ -16,6 +16,8 @@
 #include <aws/s3/model/ListObjectsV2Request.h>
 #include <fmt/format.h>
 
+#include <scwx/util/map.hpp>
+
 #if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
 #endif
@@ -227,6 +229,31 @@ AwsSatelliteDataProvider::GetTimePointsByDate(
                   [](const auto& object) { return object.first; });
 
    return timePoints;
+}
+
+bool AwsSatelliteDataProvider::IsDateCached(
+   std::chrono::system_clock::time_point date)
+{
+   using namespace std::chrono;
+   auto             day = floor<days>(date);
+   std::shared_lock lock(p->objectsMutex_);
+
+   return std::find(p->objectDates_.cbegin(), p->objectDates_.cend(), day) !=
+          p->objectDates_.cend();
+}
+
+std::string
+AwsSatelliteDataProvider::FindKey(std::chrono::system_clock::time_point time)
+{
+   std::string      key;
+   std::shared_lock lock(p->objectsMutex_);
+
+   auto elementPtr = util::GetBoundedElementPointer(p->objects_, time);
+   if (elementPtr != nullptr)
+   {
+      key = elementPtr->second.key_;
+   }
+   return key;
 }
 
 std::string AwsSatelliteDataProvider::FindLatestKey()

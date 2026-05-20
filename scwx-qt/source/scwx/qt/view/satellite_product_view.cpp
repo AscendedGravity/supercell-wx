@@ -101,7 +101,15 @@ void SatelliteProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
    p->colorTable_ = colorTable;
-   UpdateColorTableLut();
+
+   // Defer LUT generation during band transitions. If there's no valid
+   // vertex data yet, the LUT will be regenerated when new data arrives
+   // via the DataUpdated handler or ComputeSweep (both call
+   // UpdateColorTableLut after populating vertices).
+   if (!p->vertices_.empty())
+   {
+      UpdateColorTableLut();
+   }
 }
 
 void SatelliteProductView::SelectProduct(const std::string& productName)
@@ -110,6 +118,16 @@ void SatelliteProductView::SelectProduct(const std::string& productName)
    if (newBand != common::SatelliteBand::Unknown)
    {
       p->band_ = newBand;
+
+      // Clear stale data immediately so the layer doesn't render old
+      // vertices with the new band's color table during the fetch window.
+      p->vertices_.clear();
+      p->moments_.clear();
+      p->sweepTime_ = {};
+
+      set_load_status(types::RadarProductLoadStatus::ProductNotAvailable);
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotAvailable);
+
       Update();
    }
 }
@@ -339,25 +357,63 @@ void SatelliteProductView::ComputeSweep()
       return;
    }
 
-   // Check if the manager has data for our band
-   if (p->satelliteManager_->active_band() == p->band_)
-   {
-      p->vertices_  = p->satelliteManager_->vertices();
-      p->moments_   = p->satelliteManager_->moments();
-      p->sweepTime_ = p->satelliteManager_->sweep_time();
+   auto selectedTime = selected_time();
 
-      if (!p->vertices_.empty())
+   // If no time has been explicitly selected (initial state before timeline
+   // scrub), fall back to the existing live data behavior
+   if (selectedTime == std::chrono::system_clock::time_point {})
+   {
+      if (p->satelliteManager_->active_band() == p->band_)
       {
-         UpdateColorTableLut();
-         set_load_status(types::RadarProductLoadStatus::ProductLoaded);
-         Q_EMIT SweepComputed();
-         return;
+         p->vertices_  = p->satelliteManager_->vertices();
+         p->moments_   = p->satelliteManager_->moments();
+         p->sweepTime_ = p->satelliteManager_->sweep_time();
+
+         if (!p->vertices_.empty())
+         {
+            UpdateColorTableLut();
+            set_load_status(types::RadarProductLoadStatus::ProductLoaded);
+            Q_EMIT SweepComputed();
+            return;
+         }
+      }
+
+      set_load_status(types::RadarProductLoadStatus::LoadingProduct);
+      return;
+   }
+
+   // A time has been selected (timeline scrubbing or live mode).
+   // Check if the already-cached data is close enough to the selected time.
+   auto cachedSweepTime = p->satelliteManager_->sweep_time();
+   if (cachedSweepTime != std::chrono::system_clock::time_point {} &&
+       p->satelliteManager_->active_band() == p->band_)
+   {
+      auto diff = std::chrono::duration_cast<std::chrono::seconds>(
+         cachedSweepTime - selectedTime);
+
+      // Tight threshold (1s): the manager's scene cache handles
+      // deduplication for previously fetched scenes. We only skip
+      // the manager when the exact same time is already loaded.
+      if (std::abs(diff.count()) < 1)
+      {
+         p->vertices_  = p->satelliteManager_->vertices();
+         p->moments_   = p->satelliteManager_->moments();
+         p->sweepTime_ = cachedSweepTime;
+
+         if (!p->vertices_.empty())
+         {
+            UpdateColorTableLut();
+            set_load_status(types::RadarProductLoadStatus::ProductLoaded);
+            Q_EMIT SweepComputed();
+            return;
+         }
       }
    }
 
-   // If no data yet, set loading status — the manager's async fetch
-   // will trigger DataUpdated which the connection in
-   // ConnectRadarProductManager handles
+   // Need to load data for the selected time (async).
+   // The result will arrive via DataUpdated signal in
+   // ConnectRadarProductManager.
+   p->satelliteManager_->LoadDataForTime(p->band_, selectedTime);
    set_load_status(types::RadarProductLoadStatus::LoadingProduct);
 }
 

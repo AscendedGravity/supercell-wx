@@ -70,6 +70,27 @@ public:
     */
    void RefreshNow();
 
+   /**
+    * @brief Loads satellite data at/near the specified time for the given band.
+    *        Fetches data asynchronously and emits DataUpdated upon completion.
+    *
+    * @param band Satellite band
+    * @param time Requested time point
+    */
+   void LoadDataForTime(common::SatelliteBand                 band,
+                        std::chrono::system_clock::time_point time);
+
+   /**
+    * @brief Finds the previous or next actual satellite scene time relative
+    *        to the given time, using cached scene timestamps.
+    * @param time Reference time
+    * @param previous If true, find previous scene time; if false, find next
+    * @return Adjacent scene time, or the input time if none found
+    */
+   std::chrono::system_clock::time_point
+   GetAdjacentSceneTime(std::chrono::system_clock::time_point time,
+                        bool                                  previous) const;
+
 signals:
    /**
     * @brief Emitted when new satellite data has been loaded for the active

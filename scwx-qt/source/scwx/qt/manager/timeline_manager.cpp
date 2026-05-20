@@ -1,11 +1,13 @@
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/satellite_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/util/queue_counter.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/time.hpp>
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 
@@ -98,7 +100,7 @@ public:
    std::chrono::system_clock::time_point selectedTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_;
-   double                                loopSpeed_;
+   std::atomic<double>                   loopSpeed_ {1.0};
    std::chrono::milliseconds             loopDelay_;
 
    bool                    radarSweepMonitorActive_ {false};
@@ -217,7 +219,7 @@ void TimelineManager::SetLoopSpeed(double loopSpeed)
       loopSpeed = 1.0;
    }
 
-   p->loopSpeed_ = loopSpeed;
+   p->loopSpeed_.store(loopSpeed, std::memory_order_relaxed);
 }
 
 void TimelineManager::SetLoopDelay(std::chrono::milliseconds loopDelay)
@@ -518,7 +520,8 @@ void TimelineManager::Impl::PlaySync()
    {
       // Determine repeat interval (speed of 1.0 is 1 minute per second)
       interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-         std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_)) -
+         std::chrono::milliseconds(
+            std::lroundl(1000.0 / loopSpeed_.load(std::memory_order_relaxed))) -
          elapsedTime);
    }
    else
@@ -720,21 +723,44 @@ void TimelineManager::Impl::Step(Direction direction)
 
    if (radarSite_.empty())
    {
-      // No radar: apply a single one-minute step without waiting for sweeps
-      // that will never be recorded as complete.
       using namespace std::chrono_literals;
-      if (direction == Direction::Back)
+
+      // If a satellite band is active, snap to the actual previous/next
+      // scene time from the provider's cache. Otherwise fall back to
+      // a fixed 1-minute step.
+      bool snapped = false;
       {
-         newTime -= 1min;
-      }
-      else
-      {
-         newTime += 1min;
-         if (newTime > scwx::util::time::now() + 2min)
+         auto satelliteManager = manager::SatelliteManager::Instance();
+         if (satelliteManager->active_band() != common::SatelliteBand::Unknown)
          {
-            return;
+            auto adjacentTime = satelliteManager->GetAdjacentSceneTime(
+               newTime, direction == Direction::Back);
+
+            if (adjacentTime != newTime)
+            {
+               newTime = adjacentTime;
+               snapped = true;
+            }
          }
       }
+
+      if (!snapped)
+      {
+         // No satellite scene boundary found; apply a one-minute step
+         if (direction == Direction::Back)
+         {
+            newTime -= 1min;
+         }
+         else
+         {
+            newTime += 1min;
+            if (newTime > scwx::util::time::now() + 2min)
+            {
+               return;
+            }
+         }
+      }
+
       SelectTime(newTime);
       return;
    }

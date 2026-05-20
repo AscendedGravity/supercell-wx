@@ -60,6 +60,20 @@ public:
    std::chrono::system_clock::time_point FindLatestTime();
 
    /**
+    * @brief Finds the closest key in the cache for the given time (bounded
+    * upper).
+    */
+   std::string FindKey(std::chrono::system_clock::time_point time);
+
+   /**
+    * @brief Checks if the given date has already been listed and cached.
+    *
+    * @param date Date to check
+    * @return true if objects for this date are in the local cache
+    */
+   bool IsDateCached(std::chrono::system_clock::time_point date);
+
+   /**
     * @brief Downloads a satellite object by its S3 key.
     *
     * @param key S3 key
