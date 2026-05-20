@@ -132,9 +132,8 @@ void SatelliteManager::Impl::SelectBand(common::SatelliteBand band)
                   vertices_.clear();
                   moments_.clear();
                   sweepTime_ = std::chrono::system_clock::time_point {};
+                  ClearSceneCache();
                }
-
-               ClearSceneCache();
 
                FetchData();
             }
@@ -290,10 +289,9 @@ void SatelliteManager::Impl::LoadDataForTime(
                   vertices_.clear();
                   moments_.clear();
                   sweepTime_ = std::chrono::system_clock::time_point {};
+                  ClearSceneCache();
+                  availableTimes_.clear();
                }
-
-               ClearSceneCache();
-               availableTimes_.clear();
 
                FetchDataForTime();
             }
