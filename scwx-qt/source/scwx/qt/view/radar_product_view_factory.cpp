@@ -2,6 +2,7 @@
 #include <scwx/qt/view/level2_product_view.hpp>
 #include <scwx/qt/view/level3_radial_view.hpp>
 #include <scwx/qt/view/level3_raster_view.hpp>
+#include <scwx/qt/view/satellite_product_view.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <unordered_set>
@@ -66,6 +67,19 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
       else if (level3RasterProducts_.contains(productCode))
       {
          view = Level3RasterView::Create(productName, radarProductManager);
+      }
+   }
+   else if (productGroup == common::RadarProductGroup::Satellite)
+   {
+      common::SatelliteBand band = common::GetSatelliteBand(productName);
+
+      if (band == common::SatelliteBand::Unknown)
+      {
+         logger_->warn("Unknown satellite band product: {}", productName);
+      }
+      else
+      {
+         view = SatelliteProductView::Create(band, radarProductManager);
       }
    }
    else

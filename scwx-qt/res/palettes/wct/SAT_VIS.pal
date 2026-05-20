@@ -1,0 +1,15 @@
+; GOES Visible and Near-Infrared Reflectance Palette
+
+Units: Reflectance
+
+Color: 0.00  0 0 0
+Color: 0.10  25 25 25
+Color: 0.20  51 51 51
+Color: 0.30  76 76 76
+Color: 0.40  102 102 102
+Color: 0.50  127 127 127
+Color: 0.60  153 153 153
+Color: 0.70  178 178 178
+Color: 0.80  204 204 204
+Color: 0.90  230 230 230
+Color: 1.00  255 255 255

@@ -332,9 +332,10 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/layer_dialog.hpp
            source/scwx/qt/ui/left_elided_item_delegate.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
-           source/scwx/qt/ui/level2_settings_widget.hpp
-           source/scwx/qt/ui/level3_products_widget.hpp
-           source/scwx/qt/ui/level3_settings_widget.hpp
+            source/scwx/qt/ui/level2_settings_widget.hpp
+            source/scwx/qt/ui/level3_products_widget.hpp
+            source/scwx/qt/ui/level3_settings_widget.hpp
+            source/scwx/qt/ui/satellite_products_widget.hpp
            source/scwx/qt/ui/line_label.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
@@ -373,9 +374,10 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/layer_dialog.cpp
            source/scwx/qt/ui/left_elided_item_delegate.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
-           source/scwx/qt/ui/level2_settings_widget.cpp
-           source/scwx/qt/ui/level3_products_widget.cpp
-           source/scwx/qt/ui/level3_settings_widget.cpp
+            source/scwx/qt/ui/level2_settings_widget.cpp
+            source/scwx/qt/ui/level3_products_widget.cpp
+            source/scwx/qt/ui/level3_settings_widget.cpp
+            source/scwx/qt/ui/satellite_products_widget.cpp
            source/scwx/qt/ui/line_label.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
@@ -483,6 +485,7 @@ set(HDR_VIEW source/scwx/qt/view/hodograph_widget.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
              source/scwx/qt/view/level3_raster_view.hpp
+             source/scwx/qt/view/satellite_product_view.hpp
              source/scwx/qt/view/overlay_product_view.hpp
              source/scwx/qt/view/radar_product_view.hpp
              source/scwx/qt/view/radar_product_view_factory.hpp
@@ -492,6 +495,7 @@ set(SRC_VIEW source/scwx/qt/view/hodograph_widget.cpp
              source/scwx/qt/view/level3_product_view.cpp
              source/scwx/qt/view/level3_radial_view.cpp
              source/scwx/qt/view/level3_raster_view.cpp
+             source/scwx/qt/view/satellite_product_view.cpp
              source/scwx/qt/view/overlay_product_view.cpp
              source/scwx/qt/view/radar_product_view.cpp
              source/scwx/qt/view/radar_product_view_factory.cpp

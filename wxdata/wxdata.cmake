@@ -8,6 +8,7 @@ find_package(Boost)
 find_package(cpr)
 find_package(LibXml2)
 find_package(libzip)
+find_package(netCDF)
 find_package(OpenSSL)
 find_package(range-v3)
 find_package(re2)
@@ -87,6 +88,7 @@ set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                   include/scwx/provider/aws_level2_chunks_data_provider.hpp
                   include/scwx/provider/aws_level3_data_provider.hpp
                   include/scwx/provider/aws_nexrad_data_provider.hpp
+                  include/scwx/provider/aws_satellite_data_provider.hpp
                   include/scwx/provider/blitzortung_data.hpp
                   include/scwx/provider/blitzortung_provider.hpp
                   include/scwx/provider/iem_api_provider.hpp
@@ -100,6 +102,7 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                   source/scwx/provider/aws_level2_chunks_data_provider.cpp
                   source/scwx/provider/aws_level3_data_provider.cpp
                   source/scwx/provider/aws_nexrad_data_provider.cpp
+                  source/scwx/provider/aws_satellite_data_provider.cpp
                   source/scwx/provider/blitzortung_provider.cpp
                   source/scwx/provider/iem_api_provider.cpp
                   source/scwx/provider/nexrad_data_provider.cpp
@@ -123,6 +126,7 @@ set(HDR_UTIL include/scwx/util/digest.hpp
              include/scwx/util/logger.hpp
              include/scwx/util/map.hpp
              include/scwx/util/rangebuf.hpp
+             include/scwx/util/satellite_reader.hpp
              include/scwx/util/streams.hpp
              include/scwx/util/strings.hpp
              include/scwx/util/threads.hpp
@@ -135,6 +139,7 @@ set(SRC_UTIL source/scwx/util/digest.cpp
              source/scwx/util/json.cpp
              source/scwx/util/logger.cpp
              source/scwx/util/rangebuf.cpp
+             source/scwx/util/satellite_reader.cpp
              source/scwx/util/streams.cpp
              source/scwx/util/strings.cpp
              source/scwx/util/time.cpp
@@ -373,6 +378,7 @@ target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     cpr::cpr
                                     LibXml2::LibXml2
                                     libzip::zip
+                                    netCDF::netcdf
                                     OpenSSL::Crypto
                                     OpenSSL::SSL
                                     range-v3::range-v3

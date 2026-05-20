@@ -24,8 +24,9 @@ public:
 
    static const std::string& kMdUrl();
 
-private:
    static MdData      ParseKml(const std::string& kmlContent);
+
+private:
    static std::string FetchMdDiscussionText(int mdNumber);
 
    friend class SpcMdProviderTest;

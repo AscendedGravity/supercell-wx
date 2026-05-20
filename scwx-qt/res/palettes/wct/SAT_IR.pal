@@ -1,0 +1,26 @@
+; GOES Infrared Window Palette (Brightness Temperature)
+
+Units: K
+
+Color: 330.0  0 0 0
+Color: 320.0  28 28 28
+Color: 310.0  56 56 56
+Color: 300.0  84 84 84
+Color: 290.0  113 113 113
+Color: 280.0  141 141 141
+Color: 270.0  169 169 169
+Color: 260.0  198 198 198
+Color: 250.0  226 226 226
+Color: 240.0  255 255 255
+Color: 235.0  0 236 236
+Color: 230.0  0 0 246
+Color: 225.0  0 144 0
+Color: 220.0  0 255 0
+Color: 215.0  255 255 0
+Color: 210.0  231 192 0
+Color: 205.0  255 144 0
+Color: 200.0  255 0 0
+Color: 195.0  144 0 0
+Color: 190.0  242 0 248
+Color: 185.0  128 0 128
+Color: 180.0  255 255 255

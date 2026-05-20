@@ -48,6 +48,7 @@
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/qt/ui/level3_settings_widget.hpp>
+#include <scwx/qt/ui/satellite_products_widget.hpp>
 #include <scwx/qt/ui/placefile_dialog.hpp>
 #include <scwx/qt/ui/marker_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
@@ -367,6 +368,9 @@ public:
    ui::Level3ProductsWidget* level3ProductsWidget_ {nullptr};
    ui::Level3SettingsWidget* level3SettingsWidget_ {nullptr};
 
+   ui::CollapsibleGroup*        satelliteProductsGroup_ {nullptr};
+   ui::SatelliteProductsWidget* satelliteProductsWidget_ {nullptr};
+
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
 
@@ -629,6 +633,15 @@ MainWindow::MainWindow(QWidget* parent) :
       p->level3ProductsWidget_);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(
       p->level3ProductsGroup_);
+
+   // Add Satellite Products
+   p->satelliteProductsGroup_ =
+      new ui::CollapsibleGroup(tr("Satellite Products"), this);
+   p->satelliteProductsWidget_ = new ui::SatelliteProductsWidget(this);
+   p->satelliteProductsGroup_->GetContentsLayout()->addWidget(
+      p->satelliteProductsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->satelliteProductsGroup_);
 
    // Add Level 2 Settings
    p->level2SettingsGroup_ =
@@ -2940,6 +2953,8 @@ void MainWindowImpl::ConfigureUiSettings()
       uiSettings.level3_products_expanded().GetValue());
    level3SettingsGroup_->SetExpanded(
       uiSettings.level3_settings_expanded().GetValue());
+   satelliteProductsGroup_->SetExpanded(
+      uiSettings.satellite_products_expanded().GetValue());
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
@@ -2961,6 +2976,10 @@ void MainWindowImpl::ConfigureUiSettings()
            &ui::CollapsibleGroup::StateChanged,
            [&](bool expanded)
            { uiSettings.level3_settings_expanded().StageValue(expanded); });
+   connect(satelliteProductsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.satellite_products_expanded().StageValue(expanded); });
    connect(mapSettingsGroup_,
            &ui::CollapsibleGroup::StateChanged,
            [&](bool expanded)
@@ -3409,6 +3428,16 @@ void MainWindowImpl::ConnectOtherSignals()
            });
    connect(level3ProductsWidget_,
            &ui::Level3ProductsWidget::RadarProductSelected,
+           mainWindow_,
+           [this](common::RadarProductGroup group,
+                  const std::string&        productName,
+                  int16_t                   productCode)
+           {
+              SelectRadarProduct(activeMap_, group, productName, productCode);
+              ClearActivePreset();
+           });
+   connect(satelliteProductsWidget_,
+           &ui::SatelliteProductsWidget::RadarProductSelected,
            mainWindow_,
            [this](common::RadarProductGroup group,
                   const std::string&        productName,
@@ -4128,6 +4157,7 @@ void MainWindowImpl::UpdateRadarProductSelection(
 {
    level2ProductsWidget_->UpdateProductSelection(group, product);
    level3ProductsWidget_->UpdateProductSelection(group, product);
+   satelliteProductsWidget_->UpdateProductSelection(group, product);
 }
 
 void MainWindowImpl::UpdateRadarProductSettings()

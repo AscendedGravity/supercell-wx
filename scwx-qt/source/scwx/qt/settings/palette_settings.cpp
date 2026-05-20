@@ -11,7 +11,7 @@ namespace scwx::qt::settings
 
 static const std::string logPrefix_ = "scwx::qt::settings::palette_settings";
 
-static const std::array<std::string, 19> kPaletteKeys_ {
+static const std::array<std::string, 22> kPaletteKeys_ {
    // Level 2 / Common Products
    "BR",
    "BV",
@@ -32,6 +32,9 @@ static const std::array<std::string, 19> kPaletteKeys_ {
    "SRV",
    "VIL",
    "TDS",
+   "SAT_VIS",
+   "SAT_IR",
+   "SAT_WV",
    "???"};
 
 static const std::unordered_map<std::string, std::string> kDefaultPalettes_ {
@@ -55,6 +58,9 @@ static const std::unordered_map<std::string, std::string> kDefaultPalettes_ {
    {"STPIN", ""},
    {"VIL", ":/res/palettes/wct/VIL.pal"},
    {"TDS", ":/res/palettes/wct/TDS.pal"},
+   {"SAT_VIS", ":/res/palettes/wct/SAT_VIS.pal"},
+   {"SAT_IR", ":/res/palettes/wct/SAT_IR.pal"},
+   {"SAT_WV", ":/res/palettes/wct/SAT_WV.pal"},
    {"???", ":/res/palettes/wct/Default16.pal"}};
 
 static const std::map<

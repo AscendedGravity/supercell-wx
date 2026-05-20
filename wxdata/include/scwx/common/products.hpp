@@ -15,11 +15,12 @@ enum class RadarProductGroup
 {
    Level2,
    Level3,
+   Satellite,
    Unknown
 };
 typedef util::Iterator<RadarProductGroup,
                        RadarProductGroup::Level2,
-                       RadarProductGroup::Level3>
+                       RadarProductGroup::Satellite>
    RadarProductGroupIterator;
 
 enum class Level2Product
@@ -95,6 +96,34 @@ const std::vector<std::string>&
 GetLevel3AwipsIdsByProduct(const std::string& productName);
 
 inline constexpr size_t kLevel3ProductMaxTilts = 9;
+
+enum class SatelliteBand
+{
+   Band01,
+   Band02,
+   Band03,
+   Band04,
+   Band05,
+   Band06,
+   Band07,
+   Band08,
+   Band09,
+   Band10,
+   Band11,
+   Band12,
+   Band13,
+   Band14,
+   Band15,
+   Band16,
+   Unknown
+};
+typedef util::
+   Iterator<SatelliteBand, SatelliteBand::Band01, SatelliteBand::Band16>
+      SatelliteBandIterator;
+
+const std::string& GetSatelliteBandName(SatelliteBand band);
+const std::string& GetSatelliteBandDescription(SatelliteBand band);
+SatelliteBand      GetSatelliteBand(const std::string& name);
 
 } // namespace common
 } // namespace scwx

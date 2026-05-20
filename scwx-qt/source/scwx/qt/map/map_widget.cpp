@@ -1094,6 +1094,18 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
          const std::string palette =
             (group == common::RadarProductGroup::Level2) ?
                common::GetLevel2Palette(common::GetLevel2Product(productName)) :
+            (group == common::RadarProductGroup::Satellite) ?
+               ((common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band01 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band06) ?
+                   "SAT_VIS" :
+                (common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band08 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band10) ?
+                   "SAT_WV" :
+                   "SAT_IR") :
                common::GetLevel3Palette(productCode);
 
          auto& paletteSetting =

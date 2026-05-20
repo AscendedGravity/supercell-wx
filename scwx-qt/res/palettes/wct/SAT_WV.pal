@@ -1,0 +1,18 @@
+; GOES Water Vapor Palette (Tropospheric Moisture)
+
+Units: K
+
+Color: 330.0  32 0 0
+Color: 310.0  128 0 0
+Color: 290.0  220 50 0
+Color: 270.0  255 140 0
+Color: 260.0  255 220 0
+Color: 250.0  240 240 100
+Color: 242.0  0 200 150
+Color: 235.0  0 128 255
+Color: 230.0  0 0 200
+Color: 220.0  50 100 255
+Color: 210.0  150 200 255
+Color: 200.0  220 235 255
+Color: 190.0  240 245 255
+Color: 180.0  255 255 255
