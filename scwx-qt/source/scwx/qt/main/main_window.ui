@@ -121,17 +121,38 @@
     <addaction name="separator"/>
     <addaction name="actionRecreateMapLayout"/>
    </widget>
-   <widget class="QMenu" name="menuDebug">
-    <property name="title">
-     <string>&amp;Debug</string>
-    </property>
-    <addaction name="actionImGuiDebug"/>
-    <addaction name="separator"/>
-    <addaction name="actionDumpLayerList"/>
-    <addaction name="actionDumpRadarProductRecords"/>
-    <addaction name="separator"/>
-    <addaction name="actionRadarWireframe"/>
-   </widget>
+    <widget class="QMenu" name="menuDebug">
+     <property name="title">
+      <string>&amp;Debug</string>
+     </property>
+     <addaction name="actionImGuiDebug"/>
+     <addaction name="actionProviderStateInspector"/>
+     <addaction name="actionWatchDirectory"/>
+     <addaction name="separator"/>
+     <addaction name="actionDumpLayerList"/>
+     <addaction name="actionDumpRadarProductRecords"/>
+     <addaction name="actionDumpTimelineState"/>
+     <addaction name="actionDumpCurrentProduct"/>
+     <addaction name="actionDumpProviderCache"/>
+     <addaction name="separator"/>
+     <addaction name="actionRadarWireframe"/>
+     <addaction name="actionLogProviderRequests"/>
+     <addaction name="separator"/>
+     <addaction name="menuLogLevel"/>
+     <addaction name="separator"/>
+     <addaction name="actionForceRefresh"/>
+     <addaction name="actionForceProductReload"/>
+     <addaction name="actionClearProviderCache"/>
+    </widget>
+    <widget class="QMenu" name="menuLogLevel">
+     <property name="title">
+      <string>Set &amp;Log Level</string>
+     </property>
+     <addaction name="actionLogLevelTrace"/>
+     <addaction name="actionLogLevelDebug"/>
+     <addaction name="actionLogLevelInfo"/>
+     <addaction name="actionLogLevelWarning"/>
+    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
      <string>&amp;Tools</string>
@@ -690,14 +711,82 @@
     <string>3x3</string>
    </property>
   </action>
-  <action name="actionPanesCustom">
-   <property name="text">
-    <string>&amp;Custom...</string>
-   </property>
-  </action>
- </widget>
- <resources>
-  <include location="../../../../scwx-qt.qrc"/>
- </resources>
- <connections/>
-</ui>
+   <action name="actionPanesCustom">
+    <property name="text">
+     <string>&amp;Custom...</string>
+    </property>
+   </action>
+   <action name="actionProviderStateInspector">
+    <property name="text">
+     <string>&amp;Provider State Inspector...</string>
+    </property>
+   </action>
+   <action name="actionWatchDirectory">
+    <property name="text">
+     <string>Watch &amp;Directory...</string>
+    </property>
+   </action>
+   <action name="actionDumpTimelineState">
+    <property name="text">
+     <string>Dump &amp;Timeline State</string>
+    </property>
+   </action>
+   <action name="actionDumpCurrentProduct">
+    <property name="text">
+     <string>Dump &amp;Current Product</string>
+    </property>
+   </action>
+   <action name="actionDumpProviderCache">
+    <property name="text">
+     <string>Dump Provider &amp;Cache</string>
+    </property>
+   </action>
+   <action name="actionLogProviderRequests">
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="text">
+     <string>Log Provider &amp;Requests</string>
+    </property>
+   </action>
+   <action name="actionLogLevelTrace">
+    <property name="text">
+     <string>&amp;Trace</string>
+    </property>
+   </action>
+   <action name="actionLogLevelDebug">
+    <property name="text">
+     <string>&amp;Debug</string>
+    </property>
+   </action>
+   <action name="actionLogLevelInfo">
+    <property name="text">
+     <string>&amp;Info</string>
+    </property>
+   </action>
+   <action name="actionLogLevelWarning">
+    <property name="text">
+     <string>&amp;Warning</string>
+    </property>
+   </action>
+   <action name="actionForceRefresh">
+    <property name="text">
+     <string>Force Provider &amp;Refresh</string>
+    </property>
+   </action>
+   <action name="actionForceProductReload">
+    <property name="text">
+     <string>Force Product &amp;Reload</string>
+    </property>
+   </action>
+   <action name="actionClearProviderCache">
+    <property name="text">
+     <string>Clear Provider &amp;Cache</string>
+    </property>
+   </action>
+  </widget>
+  <resources>
+   <include location="../../../../scwx-qt.qrc"/>
+  </resources>
+  <connections/>
+ </ui>

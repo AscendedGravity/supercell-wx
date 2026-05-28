@@ -44,6 +44,8 @@
 #include <scwx/qt/ui/gps_info_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/layer_dialog.hpp>
+#include <scwx/qt/ui/provider_state_inspector.hpp>
+#include <scwx/qt/ui/watch_directory_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
@@ -58,6 +60,7 @@
 #include <scwx/qt/ui/import/import_settings_wizard.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
+#include <scwx/provider/aws_nexrad_data_provider.hpp>
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -379,6 +382,8 @@ public:
    ui::ExportSettingsDialog*         exportSettingsDialog_ {};
    ui::GpsInfoDialog*                gpsInfoDialog_ {};
    ui::ImGuiDebugDialog*             imGuiDebugDialog_ {};
+   ui::ProviderStateInspector*       providerStateInspector_ {};
+   ui::WatchDirectoryDialog*         watchDirectoryDialog_ {};
    ui::import::ImportSettingsWizard* importSettingsWizard_ {};
    ui::LayerDialog*                  layerDialog_ {};
    ui::PlacefileDialog*              placefileDialog_ {};
@@ -882,6 +887,12 @@ MainWindow::MainWindow(QWidget* parent) :
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
 
+   // Provider State Inspector
+   p->providerStateInspector_ = new ui::ProviderStateInspector(this);
+
+   // Watch Directory Dialog
+   p->watchDirectoryDialog_ = new ui::WatchDirectoryDialog(this);
+
    // About Dialog
    p->aboutDialog_ = new ui::AboutDialog(this);
 
@@ -1334,6 +1345,143 @@ void MainWindow::on_actionFullScreen_triggered(bool checked)
 void MainWindow::on_actionRadarWireframe_triggered(bool checked)
 {
    p->activeMap_->SetRadarWireframeEnabled(checked);
+}
+
+void MainWindow::on_actionProviderStateInspector_triggered()
+{
+   p->providerStateInspector_->show();
+   p->providerStateInspector_->raise();
+   p->providerStateInspector_->activateWindow();
+}
+
+void MainWindow::on_actionWatchDirectory_triggered()
+{
+   p->watchDirectoryDialog_->show();
+   p->watchDirectoryDialog_->raise();
+}
+
+void MainWindow::on_actionDumpTimelineState_triggered()
+{
+   manager::TimelineManager::DumpState();
+}
+
+void MainWindow::on_actionDumpCurrentProduct_triggered()
+{
+   if (p->activeMap_ == nullptr)
+   {
+      logger_->warn("No active map for product dump");
+      return;
+   }
+
+   auto        radarSite = p->activeMap_->GetRadarSite();
+   std::string siteId    = radarSite ? radarSite->id() : "(none)";
+   std::string product   = p->activeMap_->GetRadarProductName();
+   auto        group     = p->activeMap_->GetRadarProductGroup();
+
+   logger_->info("Current Product Dump");
+   logger_->info("  Site: {}", siteId);
+   logger_->info("  Product: {}", product);
+   logger_->info("  Group: {}",
+                 group == common::RadarProductGroup::Level2 ? "Level 2" :
+                                                              "Level 3");
+   logger_->info("  VCP: {}", p->activeMap_->GetVcp());
+   logger_->info("  Selected Time: {}",
+                 scwx::util::TimeString(p->activeMap_->GetSelectedTime()));
+
+   auto elevation = p->activeMap_->GetElevation();
+   if (elevation.has_value())
+   {
+      logger_->info("  Elevation: {:.1f}°", elevation.value());
+   }
+
+   logger_->info("  Smoothing: {}", p->activeMap_->GetSmoothingEnabled());
+
+   auto colorTableRange = p->activeMap_->GetColorTableRange();
+   logger_->info("  Color Table Range: [{}, {}]",
+                 colorTableRange.first,
+                 colorTableRange.second);
+
+   auto threshold = p->activeMap_->GetColorTableThreshold();
+   if (threshold.has_value())
+   {
+      logger_->info("  Color Table Threshold: {}", threshold.value());
+   }
+
+   auto units = p->activeMap_->GetColorTableUnits();
+   logger_->info("  Color Table Units: {}", units);
+
+   auto cuts = p->activeMap_->GetElevationCuts();
+   logger_->info("  Elevation Cuts ({}):", cuts.size());
+   for (std::size_t i = 0; i < cuts.size(); ++i)
+   {
+      logger_->info("    [{}/{}] {:.1f}°", i, cuts.size() - 1, cuts[i]);
+   }
+}
+
+void MainWindow::on_actionDumpProviderCache_triggered()
+{
+   manager::RadarProductManager::DumpProviderCache();
+}
+
+void MainWindow::on_actionLogProviderRequests_triggered(bool checked)
+{
+   provider::AwsNexradDataProvider::EnableRequestLogging(checked);
+   logger_->info("Provider request logging: {}",
+                 checked ? "enabled" : "disabled");
+}
+
+void MainWindow::on_actionForceRefresh_triggered()
+{
+   manager::RadarProductManager::ForceRefresh();
+}
+
+void MainWindow::on_actionForceProductReload_triggered()
+{
+   if (p->activeMap_ == nullptr)
+   {
+      return;
+   }
+
+   auto radarSite = p->activeMap_->GetRadarSite();
+   if (!radarSite)
+   {
+      return;
+   }
+
+   auto group   = p->activeMap_->GetRadarProductGroup();
+   auto product = p->activeMap_->GetRadarProductName();
+
+   manager::RadarProductManager::ForceReloadProduct(
+      radarSite->id(), group, product);
+}
+
+void MainWindow::on_actionClearProviderCache_triggered()
+{
+   manager::RadarProductManager::ClearProviderCache();
+}
+
+void MainWindow::on_actionLogLevelTrace_triggered()
+{
+   spdlog::set_level(spdlog::level::trace);
+   logger_->info("Log level set to TRACE");
+}
+
+void MainWindow::on_actionLogLevelDebug_triggered()
+{
+   spdlog::set_level(spdlog::level::debug);
+   logger_->info("Log level set to DEBUG");
+}
+
+void MainWindow::on_actionLogLevelInfo_triggered()
+{
+   spdlog::set_level(spdlog::level::info);
+   logger_->info("Log level set to INFO");
+}
+
+void MainWindow::on_actionLogLevelWarning_triggered()
+{
+   spdlog::set_level(spdlog::level::warn);
+   logger_->info("Log level set to WARNING");
 }
 
 void MainWindow::on_actionUserManual_triggered()

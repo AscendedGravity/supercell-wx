@@ -22,6 +22,8 @@ public:
    explicit TimelineManager();
    ~TimelineManager();
 
+   static void DumpState();
+
    static std::shared_ptr<TimelineManager> Instance();
 
    [[nodiscard]] std::chrono::system_clock::time_point GetSelectedTime() const;

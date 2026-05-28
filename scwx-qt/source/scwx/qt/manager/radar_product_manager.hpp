@@ -11,8 +11,10 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
 
+#include <chrono>
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 
 #include <boost/uuid/nil_generator.hpp>
@@ -37,6 +39,30 @@ public:
     * @brief Debug function to dump currently loaded products to the log.
     */
    static void DumpRecords();
+
+   static void DumpProviderCache();
+   static void ClearProviderCache();
+   static void ForceRefresh();
+
+   static void ForceReloadProduct(const std::string&        radarSite,
+                                  common::RadarProductGroup group,
+                                  const std::string&        product);
+
+   struct ProviderDebugInfo
+   {
+      std::string                           radarSite;
+      std::string                           providerName;
+      common::RadarProductGroup             group;
+      std::string                           product;
+      bool                                  isChunks;
+      bool                                  refreshEnabled;
+      size_t                                cacheSize;
+      std::chrono::system_clock::time_point lastModified;
+      std::chrono::seconds                  updatePeriod;
+      size_t                                refreshCount;
+   };
+
+   static std::vector<ProviderDebugInfo> GetProviderDebugInfo();
 
    [[nodiscard]] const std::vector<float>&
    coordinates(common::RadialSize radialSize, bool smoothingEnabled) const;

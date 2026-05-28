@@ -41,6 +41,11 @@ void QueueCounter::remove()
    p->count_.fetch_sub(1);
 }
 
+size_t QueueCounter::count() const
+{
+   return p->count_.load();
+}
+
 bool QueueCounter::is_lock_free()
 {
    return p->count_.is_lock_free();

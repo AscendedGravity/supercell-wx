@@ -327,9 +327,11 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/gps_info_dialog.hpp
            source/scwx/qt/ui/hotkey_edit.hpp
-           source/scwx/qt/ui/imgui_debug_dialog.hpp
-           source/scwx/qt/ui/imgui_debug_widget.hpp
-           source/scwx/qt/ui/layer_dialog.hpp
+            source/scwx/qt/ui/imgui_debug_dialog.hpp
+            source/scwx/qt/ui/imgui_debug_widget.hpp
+            source/scwx/qt/ui/layer_dialog.hpp
+            source/scwx/qt/ui/provider_state_inspector.hpp
+            source/scwx/qt/ui/watch_directory_dialog.hpp
            source/scwx/qt/ui/left_elided_item_delegate.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
@@ -368,9 +370,11 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/gps_info_dialog.cpp
            source/scwx/qt/ui/hotkey_edit.cpp
-           source/scwx/qt/ui/imgui_debug_dialog.cpp
-           source/scwx/qt/ui/imgui_debug_widget.cpp
-           source/scwx/qt/ui/layer_dialog.cpp
+            source/scwx/qt/ui/imgui_debug_dialog.cpp
+            source/scwx/qt/ui/imgui_debug_widget.cpp
+            source/scwx/qt/ui/layer_dialog.cpp
+            source/scwx/qt/ui/provider_state_inspector.cpp
+            source/scwx/qt/ui/watch_directory_dialog.cpp
            source/scwx/qt/ui/left_elided_item_delegate.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
@@ -403,8 +407,10 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/edit_marker_dialog.ui
            source/scwx/qt/ui/export_settings_dialog.ui
            source/scwx/qt/ui/gps_info_dialog.ui
-           source/scwx/qt/ui/imgui_debug_dialog.ui
-           source/scwx/qt/ui/layer_dialog.ui
+            source/scwx/qt/ui/imgui_debug_dialog.ui
+            source/scwx/qt/ui/layer_dialog.ui
+            source/scwx/qt/ui/provider_state_inspector.ui
+            source/scwx/qt/ui/watch_directory_dialog.ui
            source/scwx/qt/ui/open_url_dialog.ui
            source/scwx/qt/ui/placefile_dialog.ui
            source/scwx/qt/ui/placefile_settings_widget.ui
