@@ -449,6 +449,205 @@ void RadarProductManager::DumpRecords()
       });
 }
 
+std::vector<RadarProductManager::ProviderDebugInfo>
+RadarProductManager::GetProviderDebugInfo()
+{
+   std::vector<ProviderDebugInfo> result;
+
+   const auto addInfo = [&](const std::shared_ptr<ProviderManager>& pm,
+                            const std::string& providerName,
+                            const std::string& radarSite,
+                            bool               isChunks)
+   {
+      if (pm == nullptr)
+      {
+         return;
+      }
+
+      ProviderDebugInfo info;
+      info.radarSite      = radarSite;
+      info.providerName   = providerName;
+      info.group          = pm->group_;
+      info.product        = pm->product_;
+      info.isChunks       = isChunks;
+      info.refreshEnabled = pm->refreshEnabled_;
+      info.cacheSize =
+         pm->provider_ != nullptr ? pm->provider_->cache_size() : 0;
+      info.lastModified = pm->provider_ != nullptr ?
+                             pm->provider_->last_modified() :
+                             std::chrono::system_clock::time_point {};
+      info.updatePeriod = pm->provider_ != nullptr ?
+                             pm->provider_->update_period() :
+                             std::chrono::seconds {0};
+      info.refreshCount = pm->refreshCount_;
+      result.push_back(info);
+   };
+
+   std::shared_lock instanceLock {instanceMutex_};
+   for (auto& instance : instanceMap_)
+   {
+      auto mgr = instance.second.lock();
+      if (mgr == nullptr)
+      {
+         continue;
+      }
+
+      addInfo(mgr->p->level2ProviderManager_,
+              "Level 2 Archive",
+              mgr->radar_site()->id(),
+              false);
+      addInfo(mgr->p->level2ChunksProviderManager_,
+              "Level 2 Chunks",
+              mgr->radar_site()->id(),
+              true);
+
+      std::shared_lock l3Lock {mgr->p->level3ProviderManagerMutex_};
+      for (auto& [product, pm] : mgr->p->level3ProviderManagerMap_)
+      {
+         addInfo(pm, "Level 3", mgr->radar_site()->id(), false);
+      }
+   }
+
+   return result;
+}
+
+void RadarProductManager::DumpProviderCache()
+{
+   auto infos = GetProviderDebugInfo();
+   logger_->info("Provider Cache Dump");
+
+   for (auto& info : infos)
+   {
+      logger_->info(
+         "  {} {}: cache={} refreshEnabled={} refreshCount={} "
+         "updatePeriod={}s",
+         info.radarSite,
+         info.providerName,
+         info.cacheSize,
+         info.refreshEnabled,
+         info.refreshCount,
+         info.updatePeriod.count());
+   }
+}
+
+void RadarProductManager::ClearProviderCache()
+{
+   logger_->info("Clearing provider caches...");
+
+   std::shared_lock instanceLock {instanceMutex_};
+   for (auto& instance : instanceMap_)
+   {
+      auto mgr = instance.second.lock();
+      if (mgr == nullptr)
+      {
+         continue;
+      }
+
+      // Shutdown all providers
+      mgr->p->level2ProviderManager_->Disable(true);
+      mgr->p->level2ChunksProviderManager_->Disable(true);
+
+      {
+         std::shared_lock l3Lock {mgr->p->level3ProviderManagerMutex_};
+         for (auto& [product, pm] : mgr->p->level3ProviderManagerMap_)
+         {
+            pm->Disable(true);
+         }
+      }
+
+      // Re-create Level 2 providers
+      mgr->p->level2ProviderManager_->provider_ =
+         provider::NexradDataProviderFactory::CreateLevel2DataProvider(
+            mgr->p->radarId_);
+      mgr->p->level2ChunksProviderManager_->provider_ =
+         provider::NexradDataProviderFactory::CreateLevel2ChunksDataProvider(
+            mgr->p->radarId_);
+
+      auto chunksProvider =
+         std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
+            mgr->p->level2ChunksProviderManager_->provider_);
+      if (chunksProvider != nullptr)
+      {
+         chunksProvider->SetLevel2DataProvider(
+            std::dynamic_pointer_cast<provider::AwsLevel2DataProvider>(
+               mgr->p->level2ProviderManager_->provider_));
+      }
+
+      // Clear Level 3 providers (they are lazily re-created)
+      {
+         std::unique_lock l3WriteLock {mgr->p->level3ProviderManagerMutex_};
+         mgr->p->level3ProviderManagerMap_.clear();
+      }
+   }
+
+   logger_->info("Provider caches cleared");
+}
+
+void RadarProductManager::ForceRefresh()
+{
+   logger_->info("Forcing provider refresh...");
+
+   auto refreshProvider = [](const std::shared_ptr<ProviderManager>& pm)
+   {
+      if (pm != nullptr && pm->provider_ != nullptr)
+      {
+         boost::asio::post(pm->providerThreadPool_,
+                           [pm]() { pm->RefreshDataSync(); });
+      }
+   };
+
+   std::shared_lock instanceLock {instanceMutex_};
+   for (auto& instance : instanceMap_)
+   {
+      auto mgr = instance.second.lock();
+      if (mgr == nullptr)
+      {
+         continue;
+      }
+
+      refreshProvider(mgr->p->level2ProviderManager_);
+      refreshProvider(mgr->p->level2ChunksProviderManager_);
+
+      std::shared_lock l3Lock {mgr->p->level3ProviderManagerMutex_};
+      for (auto& [product, pm] : mgr->p->level3ProviderManagerMap_)
+      {
+         refreshProvider(pm);
+      }
+   }
+
+   logger_->info("Provider refresh triggered");
+}
+
+void RadarProductManager::ForceReloadProduct(const std::string& radarSite,
+                                             common::RadarProductGroup group,
+                                             const std::string&        product)
+{
+   auto mgr = Instance(radarSite);
+   if (mgr == nullptr)
+   {
+      return;
+   }
+
+   if (group == common::RadarProductGroup::Level2)
+   {
+      std::unique_lock lock {mgr->p->level2ProductRecordMutex_};
+      mgr->p->level2ProductRecords_.clear();
+      mgr->p->level2ProductRecentRecords_.clear();
+      logger_->info("Cleared Level 2 product cache for {}", radarSite);
+   }
+   else
+   {
+      std::unique_lock lock {mgr->p->level3ProductRecordMutex_};
+      mgr->p->level3ProductRecordsMap_[product].clear();
+      auto it = mgr->p->level3ProductRecentRecordsMap_.find(product);
+      if (it != mgr->p->level3ProductRecentRecordsMap_.end())
+      {
+         it->second.clear();
+      }
+      logger_->info("Cleared Level 3 cache for {}:{}", radarSite, product);
+   }
+}
+
 // Cached lat/lon grid; first use for a (radialSize, smoothing) pair may block
 // on EnsureCoordinatesInitialized.
 const std::vector<float>&

@@ -43,6 +43,13 @@ public:
    void remove();
 
    /**
+    * Gets the current count of items in the queue
+    *
+    * @return The current count
+    */
+   size_t count() const;
+
+   /**
     * Tells if this instance is lock free
     *
     * @return true if it is lock free, false otherwise

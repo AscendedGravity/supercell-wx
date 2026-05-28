@@ -8,6 +8,8 @@
 #include <atomic>
 #include <shared_mutex>
 
+#include <boost/timer/timer.hpp>
+
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
@@ -20,6 +22,10 @@ namespace scwx::provider
 static const std::string logPrefix_ =
    "scwx::provider::aws_nexrad_data_provider";
 static const auto logger_ = util::Logger::Create(logPrefix_);
+
+static std::atomic<bool>                     requestLoggingEnabled_ {false};
+static const std::shared_ptr<spdlog::logger> requestLogger_ =
+   util::Logger::Create("scwx::provider::requests");
 
 // Keep at least today, yesterday, and three more dates (archived volume scan
 // list size)
@@ -112,6 +118,16 @@ AwsNexradDataProvider::AwsNexradDataProvider(AwsNexradDataProvider&&) noexcept =
    default;
 AwsNexradDataProvider&
 AwsNexradDataProvider::operator=(AwsNexradDataProvider&&) noexcept = default;
+
+void AwsNexradDataProvider::EnableRequestLogging(bool enabled)
+{
+   requestLoggingEnabled_ = enabled;
+}
+
+bool AwsNexradDataProvider::IsRequestLoggingEnabled()
+{
+   return requestLoggingEnabled_.load();
+}
 
 size_t AwsNexradDataProvider::cache_size() const
 {
@@ -263,7 +279,23 @@ AwsNexradDataProvider::ListObjects(std::chrono::system_clock::time_point date)
    request.SetBucket(p->bucketName_);
    request.SetPrefix(prefix);
 
-   auto outcome = p->client_->ListObjectsV2(request);
+   Aws::S3::Model::ListObjectsV2Outcome outcome;
+   if (requestLoggingEnabled_)
+   {
+      boost::timer::cpu_timer timer;
+      timer.start();
+      outcome = p->client_->ListObjectsV2(request);
+      timer.stop();
+      requestLogger_->info(
+         "ListObjectsV2 {} · {} objects · {}",
+         prefix,
+         outcome.IsSuccess() ? outcome.GetResult().GetContents().size() : 0u,
+         timer.format(6, "%ws"));
+   }
+   else
+   {
+      outcome = p->client_->ListObjectsV2(request);
+   }
 
    size_t newObjects   = 0;
    size_t totalObjects = 0;
@@ -336,6 +368,12 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
                                      { return p->running_.load(); });
 
    auto outcome = p->client_->GetObject(request);
+
+   if (requestLoggingEnabled_)
+   {
+      requestLogger_->info(
+         "GetObject {} · {}", key, outcome.IsSuccess() ? "SUCCESS" : "FAILED");
+   }
 
    if (outcome.IsSuccess())
    {

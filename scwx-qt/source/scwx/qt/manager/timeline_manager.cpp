@@ -787,6 +787,36 @@ void TimelineManager::Impl::Step(Direction direction)
    }
 }
 
+void TimelineManager::DumpState()
+{
+   auto self = Instance();
+   if (!self)
+   {
+      return;
+   }
+
+   logger_->info("Timeline State Dump");
+   logger_->info("  Radar Site: {}", self->p->radarSite_);
+   logger_->info("  View Type: {}", static_cast<int>(self->p->viewType_));
+   logger_->info("  Selected Time: {}",
+                 scwx::util::TimeString(self->p->selectedTime_));
+   logger_->info("  Adjusted Time: {}",
+                 scwx::util::TimeString(self->p->adjustedTime_));
+   logger_->info("  Pinned Time: {}",
+                 scwx::util::TimeString(self->p->pinnedTime_));
+   logger_->info("  Loop Time: {} min", self->p->loopTime_.count());
+   logger_->info("  Loop Speed: {}x", self->p->loopSpeed_);
+   logger_->info("  Loop Delay: {} ms", self->p->loopDelay_.count());
+   logger_->info("  Map Count: {}", self->p->mapCount_);
+   logger_->info("  Animation State: {}",
+                 static_cast<int>(self->p->animationState_));
+   logger_->info("  Step Queue Depth: {}", self->p->stepCounter_.count());
+   logger_->info("  Sweep Monitor Active: {}",
+                 self->p->radarSweepMonitorActive_);
+   logger_->info("  Sweeps Updated: {}", self->p->radarSweepsUpdated_.size());
+   logger_->info("  Sweeps Complete: {}", self->p->radarSweepsComplete_.size());
+}
+
 std::shared_ptr<TimelineManager> TimelineManager::Instance()
 {
    static std::weak_ptr<TimelineManager> timelineManagerReference_ {};

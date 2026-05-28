@@ -49,6 +49,12 @@ public:
    std::pair<size_t, size_t> Refresh() override;
 
    /**
+    * @brief Enables or disables request logging for S3 HTTP requests.
+    */
+   static void EnableRequestLogging(bool enabled);
+   static bool IsRequestLoggingEnabled();
+
+   /**
     * @brief Shuts down the provider and stops any in-progress network requests.
     */
    void Shutdown() noexcept override;
