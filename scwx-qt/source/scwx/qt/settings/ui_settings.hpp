@@ -35,6 +35,9 @@ public:
    [[nodiscard]] SettingsVariable<std::string>& main_ui_geometry() const;
    [[nodiscard]] SettingsVariable<std::int64_t>&
    radar_toolbox_dock_width() const;
+   [[nodiscard]] SettingsVariable<std::string>& map_annotation_state() const;
+   // JSON: { \"gw\":w,\"gh\":h,\"v\":[...],\"rows\":[[..],[..]]} map splitter
+   // sizes
    [[nodiscard]] SettingsVariable<std::string>& map_pane_splitter_state() const;
    [[nodiscard]] SettingsVariable<std::string>& map_pane_popout_state() const;
    [[nodiscard]] SettingsVariable<std::string>&
