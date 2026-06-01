@@ -46,9 +46,6 @@ struct MapPaneContextMenuConfig
    std::function<void()>                                     on_reset_layout;
    /// Appends L2/L3 product submenus (and connects actions).
    std::function<void(QMenu& menu, MapWidget* map)> append_radar_submenus;
-   /// Appends SPC Convective Outlook submenus (and connects actions).
-   /// Optional — if null/empty, no SPC Outlook section is added.
-   std::function<void(QMenu& menu)> append_spc_outlook_submenus;
    /// With \p set_draw_toolbar_open and nonempty \p text_draw: if set, Draw row
    /// is checkable; otherwise Draw only opens on click.
    std::function<bool(std::size_t map_index)>            is_draw_toolbar_open;
