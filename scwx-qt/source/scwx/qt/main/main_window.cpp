@@ -44,6 +44,7 @@
 #include <scwx/qt/ui/gps_info_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/layer_dialog.hpp>
+#include <scwx/qt/ui/map_annotation_dock_widget.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
@@ -67,9 +68,10 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <vector>
 #include <set>
 
 #include <boost/asio/post.hpp>
@@ -332,6 +334,9 @@ public:
    void DockAllPoppedBeforeTeardown();
    void SavePoppedMapWindowsToSettings();
    void TryRestorePoppedMapWindows();
+   void ConnectMapAnnotationLayerReady(map::MapWidget* mw);
+   /// Layer broadcast, floating host resolver, deferred float-from-settings.
+   void ConfigureMapAnnotationDock();
 
    // Preset methods
    void PopulatePresetComboBox();
@@ -371,6 +376,7 @@ public:
    QLabel* timeLabel_ {nullptr};
 
    ui::AlertDockWidget*              alertDockWidget_ {};
+   QPointer<ui::MapAnnotationDockWidget> mapAnnotationDock_ {};
    ui::MesoscaleDiscussionDialog*    mesoscaleDiscussionDialog_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
    ui::SoundingPanel*                soundingPanel_ {};
@@ -454,6 +460,7 @@ public:
 
 public slots:
    void OnMapPaneContextMenuRequested(const QPoint& globalPos);
+   void OnMapAnnotationLayerReady();
    void UpdateMapParameters(double latitude,
                             double longitude,
                             double zoom,
@@ -510,6 +517,23 @@ MainWindow::MainWindow(QWidget* parent) :
    p->soundingPanel_ = new ui::SoundingPanel(this);
    addDockWidget(Qt::RightDockWidgetArea, p->soundingPanel_);
    p->soundingPanel_->hide();
+
+   p->mapAnnotationDock_ =
+      new ui::MapAnnotationDockWidget(p->mainWindow_->ui->centralwidget);
+   p->mapAnnotationDock_->AttachToMap(p->activeMap_);
+   p->ConfigureMapAnnotationDock();
+   for (map::MapWidget* mw : p->maps_)
+   {
+      if (mw != nullptr)
+      {
+         p->ConnectMapAnnotationLayerReady(mw);
+      }
+   }
+   if (p->activeMap_ != nullptr)
+   {
+      p->mapAnnotationDock_->BindToLayer(p->activeMap_->map_annotation_layer(),
+                                         false);
+   }
 
    // GPS Info Dialog
    p->gpsInfoDialog_ = new ui::GpsInfoDialog(this);
@@ -1460,6 +1484,12 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          {
             activeMap_ = nullptr;
          }
+         if (!mapAnnotationDock_.isNull())
+         {
+            mapAnnotationDock_->DetachIfHostedBy(lastMap);
+         }
+         // MapWidget not managed by smart ptr; Qt widget lifetime via parent
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
          delete lastMap;
          maps_.pop_back();
       }
@@ -1479,6 +1509,7 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          }
          maps_.at(static_cast<std::size_t>(i)) = new map::MapWidget(
             static_cast<std::size_t>(i), settings_, glContext_);
+         ConnectMapAnnotationLayerReady(maps_.at(i));
       }
    }
 
@@ -1510,6 +1541,80 @@ void MainWindowImpl::TeardownMapLayout()
 
    delete mapLayoutRoot_;
    mapLayoutRoot_ = nullptr;
+}
+
+void MainWindowImpl::ConnectMapAnnotationLayerReady(map::MapWidget* mw)
+{
+   if (mw == nullptr)
+   {
+      return;
+   }
+   static_cast<void>(
+      QObject::connect(mw,
+                       &map::MapWidget::MapAnnotationLayerReady,
+                       this,
+                       &MainWindowImpl::OnMapAnnotationLayerReady,
+                       Qt::UniqueConnection));
+}
+
+void MainWindowImpl::OnMapAnnotationLayerReady()
+{
+   auto* const mw = qobject_cast<map::MapWidget*>(sender());
+   if (mw == nullptr || mapAnnotationDock_.isNull())
+   {
+      return;
+   }
+   if (mw == activeMap_)
+   {
+      mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(),
+                                      false);
+   }
+   else
+   {
+      mapAnnotationDock_->ReapplyToolAndStyleFromUi();
+   }
+}
+
+void MainWindowImpl::ConfigureMapAnnotationDock()
+{
+   if (mapAnnotationDock_.isNull())
+   {
+      return;
+   }
+   mapAnnotationDock_->SetBroadcastTargets(
+      [this]()
+      {
+         std::vector<std::shared_ptr<map::MapAnnotationLayer>> layers;
+         for (map::MapWidget* mw : maps_)
+         {
+            if (mw == nullptr)
+            {
+               continue;
+            }
+            if (auto layer = mw->map_annotation_layer())
+            {
+               layers.push_back(std::move(layer));
+            }
+         }
+         return layers;
+      });
+   mapAnnotationDock_->SetFloatingDockHostResolver(
+      [this]() -> QWidget*
+      {
+         if (activeMap_ != nullptr)
+         {
+            return activeMap_;
+         }
+         for (map::MapWidget* mw : maps_)
+         {
+            if (mw != nullptr)
+            {
+               return mw;
+            }
+         }
+         return nullptr;
+      });
+   mapAnnotationDock_->ApplyDeferredFloatingState();
 }
 
 void MainWindowImpl::SyncMapPaneViewLinkStateSize()
@@ -3880,6 +3985,12 @@ void MainWindowImpl::ApplyStoredColorTableThreshold(map::MapWidget* mapWidget)
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
 {
+   if (mapWidget != nullptr &&
+       std::find(maps_.cbegin(), maps_.cend(), mapWidget) == maps_.cend())
+   {
+      mapWidget = nullptr;
+   }
+
    if (mapWidget == activeMap_)
    {
       return;
@@ -3890,6 +4001,21 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
    for (map::MapWidget* widget : maps_)
    {
       widget->SetActive(mapWidget == widget);
+   }
+
+   if (!mapAnnotationDock_.isNull())
+   {
+      if (activeMap_ != nullptr)
+      {
+         mapAnnotationDock_->AttachToMap(activeMap_);
+         mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(),
+                                         false);
+      }
+      else
+      {
+         mapAnnotationDock_->AttachToMap(nullptr);
+         mapAnnotationDock_->BindToLayer(nullptr);
+      }
    }
 }
 
@@ -4007,6 +4133,43 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
    cfg.tooltip_reset_layout_when_popped = mainWindow_->tr(
       "Use Dock on a popped-out map, or close this menu "
       "and reset layout from the main window.");
+   cfg.text_draw            = mainWindow_->tr("&Draw");
+   cfg.is_draw_toolbar_open = [this](std::size_t i)
+   {
+      if (mapAnnotationDock_.isNull() || i >= maps_.size() ||
+          maps_.at(i) == nullptr)
+      {
+         return false;
+      }
+      return maps_.at(i) == activeMap_ && mapAnnotationDock_->PanelExpanded();
+   };
+   cfg.set_draw_toolbar_open = [this](std::size_t i, bool open)
+   {
+      if (i >= maps_.size() || maps_.at(i) == nullptr)
+      {
+         return;
+      }
+      map::MapWidget* const mw = maps_.at(i);
+      if (mapAnnotationDock_.isNull())
+      {
+         // NOLINTBEGIN(cppcoreguidelines-owning-memory): Qt parent owns dock
+         mapAnnotationDock_ =
+            new ui::MapAnnotationDockWidget(mainWindow_->ui->centralwidget);
+         // NOLINTEND(cppcoreguidelines-owning-memory)
+         ConfigureMapAnnotationDock();
+      }
+      SetActiveMap(mw);
+      if (!open)
+      {
+         mapAnnotationDock_->SetPanelExpanded(false);
+         return;
+      }
+      // SetActiveMap no-ops when |mw| is already active; still re-attach after
+      // pop-out/dock so placement and layer bind match the grid map again.
+      mapAnnotationDock_->AttachToMap(mw);
+      mapAnnotationDock_->BindToLayer(mw->map_annotation_layer(), false);
+      mapAnnotationDock_->SetPanelExpanded(true);
+   };
    cfg.map_index   = mapIndex;
    cfg.maps        = &maps_;
    cfg.view_linked = &mapPaneViewLinked_;
@@ -4276,6 +4439,15 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
       return;
    }
 
+   if (!mapAnnotationDock_.isNull())
+   {
+      mapAnnotationDock_->DetachIfHostedBy(map, true);
+      if (map == activeMap_)
+      {
+         mapAnnotationDock_->SetPanelExpanded(false);
+      }
+   }
+
    map->setParent(nullptr);
    ph->show();
 
@@ -4344,6 +4516,14 @@ void MainWindowImpl::DockPoppedMap(std::size_t mapIndex)
          }
          mapPanePlaceholders_.at(mapIndex) = nullptr;
          mapPanePopoutFrames_.at(mapIndex).reset();
+         if (!mapAnnotationDock_.isNull())
+         {
+            mapAnnotationDock_->DetachIfHostedBy(map, true);
+            if (map == activeMap_)
+            {
+               mapAnnotationDock_->SetPanelExpanded(false);
+            }
+         }
          return;
       }
    }
@@ -4387,6 +4567,10 @@ void MainWindowImpl::DockPoppedMap(std::size_t mapIndex)
 
    if (mapPanePopoutFrames_.at(mapIndex))
    {
+      if (!mapAnnotationDock_.isNull())
+      {
+         mapAnnotationDock_->DetachIfHostedBy(map, true);
+      }
       mapPanePopoutFrames_.at(mapIndex)->DetachMapWidget();
       mapPanePopoutFrames_.at(mapIndex).reset();
    }
@@ -4411,6 +4595,10 @@ void MainWindowImpl::DockPoppedMap(std::size_t mapIndex)
    map->raise();
    mapPanePlaceholders_.at(mapIndex) = nullptr;
    mapPanePoppedOut_.at(mapIndex)    = false;
+   if (!mapAnnotationDock_.isNull() && map == activeMap_)
+   {
+      mapAnnotationDock_->SetPanelExpanded(false);
+   }
    ApplyEqualMapPaneSizes();
    ScheduleMapPaneGeometryApply();
 }

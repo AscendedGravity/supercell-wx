@@ -24,6 +24,7 @@ public:
       radarToolboxDockWidth_.SetDefault(280);
       radarToolboxDockWidth_.SetMinimum(150);
       radarToolboxDockWidth_.SetMaximum(600);
+      mapAnnotationState_.SetDefault("");
       mapPaneSplitterState_.SetDefault("");
       mapPanePopoutState_.SetDefault("");
       mapPaneViewLinkState_.SetDefault("");
@@ -48,6 +49,7 @@ public:
    SettingsVariable<std::string>  mainUIGeometry_ {"main_ui_geometry"};
    SettingsVariable<std::int64_t> radarToolboxDockWidth_ {
       "radar_toolbox_dock_width"};
+   SettingsVariable<std::string> mapAnnotationState_ {"map_annotation_state"};
    SettingsVariable<std::string> mapPaneSplitterState_ {
       "map_pane_splitter_state"};
    SettingsVariable<std::string> mapPanePopoutState_ {"map_pane_popout_state"};
@@ -69,6 +71,7 @@ UiSettings::UiSettings() :
                       &p->mainUIState_,
                       &p->mainUIGeometry_,
                       &p->radarToolboxDockWidth_,
+                      &p->mapAnnotationState_,
                       &p->mapPaneSplitterState_,
                       &p->mapPanePopoutState_,
                       &p->mapPaneViewLinkState_,
@@ -130,6 +133,11 @@ SettingsVariable<std::int64_t>& UiSettings::radar_toolbox_dock_width() const
    return p->radarToolboxDockWidth_;
 }
 
+SettingsVariable<std::string>& UiSettings::map_annotation_state() const
+{
+   return p->mapAnnotationState_;
+}
+
 SettingsVariable<std::string>& UiSettings::map_pane_splitter_state() const
 {
    return p->mapPaneSplitterState_;
@@ -164,6 +172,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
    dataChanged |= p->radarToolboxDockWidth_.Commit();
+   dataChanged |= p->mapAnnotationState_.Commit();
    dataChanged |= p->mapPaneSplitterState_.Commit();
    dataChanged |= p->mapPanePopoutState_.Commit();
    dataChanged |= p->mapPaneViewLinkState_.Commit();
@@ -189,6 +198,7 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
            lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
            lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_ &&
+           lhs.p->mapAnnotationState_ == rhs.p->mapAnnotationState_ &&
            lhs.p->mapPaneSplitterState_ == rhs.p->mapPaneSplitterState_ &&
            lhs.p->mapPanePopoutState_ == rhs.p->mapPanePopoutState_ &&
            lhs.p->mapPaneViewLinkState_ == rhs.p->mapPaneViewLinkState_ &&
