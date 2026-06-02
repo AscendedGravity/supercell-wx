@@ -275,8 +275,16 @@ void PlacefilePolygons::Render(
 
 void PlacefilePolygons::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(2, p->vbo_.data());
+   if (p->vao_ != GL_INVALID_INDEX)
+   {
+      glDeleteVertexArrays(1, &p->vao_);
+      p->vao_ = GL_INVALID_INDEX;
+   }
+   if (p->vbo_[0] != GL_INVALID_INDEX)
+   {
+      glDeleteBuffers(2, p->vbo_.data());
+      p->vbo_.fill(GL_INVALID_INDEX);
+   }
 
    std::unique_lock lock {p->bufferMutex_};
 

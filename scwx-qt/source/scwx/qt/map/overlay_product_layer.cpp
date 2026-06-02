@@ -121,17 +121,20 @@ void OverlayProductLayer::Initialize(
    logger_->debug("Initialize()");
 
    auto overlayProductView = mapContext->overlay_product_view();
-   connect(overlayProductView.get(),
-           &view::OverlayProductView::ProductUpdated,
-           this,
-           [this](std::string product)
-           {
-              if (product == "NST")
+   if (overlayProductView != nullptr)
+   {
+      connect(overlayProductView.get(),
+              &view::OverlayProductView::ProductUpdated,
+              this,
+              [this](std::string product)
               {
-                 p->stiNeedsUpdate_ = true;
-                 Q_EMIT NeedsRendering();
-              }
-           });
+                 if (product == "NST")
+                 {
+                    p->stiNeedsUpdate_ = true;
+                    Q_EMIT NeedsRendering();
+                 }
+              });
+   }
 
    p->UpdateStormTrackingInformation(mapContext);
 
@@ -169,6 +172,13 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation(
    stiNeedsUpdate_ = false;
 
    auto overlayProductView  = mapContext->overlay_product_view();
+   if (overlayProductView == nullptr)
+   {
+      linkedVectors_->StartVectors();
+      linkedVectors_->FinishVectors();
+      return;
+   }
+
    auto radarProductManager = overlayProductView->radar_product_manager();
    auto message             = overlayProductView->radar_product_message("NST");
 

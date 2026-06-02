@@ -128,6 +128,13 @@ void Level3RadialView::ComputeSweep()
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager =
       radar_product_manager();
+
+   if (radarProductManager == nullptr)
+   {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
+      return;
+   }
+
    const bool smoothingEnabled          = smoothing_enabled();
    p->showSmoothedRangeFolding_         = show_smoothed_range_folding();
    const bool& showSmoothedRangeFolding = p->showSmoothedRangeFolding_;
@@ -552,6 +559,10 @@ void Level3RadialView::Impl::ComputeCoordinates(
       util::GeographicLib::DefaultGeodesic());
 
    auto         radarProductManager = self_->radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
    auto         radarSite           = radarProductManager->radar_site();
    const double radarLatitude       = radarSite->latitude();
    const double radarLongitude      = radarSite->longitude();
@@ -647,6 +658,10 @@ Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    auto         radarProductManager = radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return std::nullopt;
+   }
    auto         radarSite           = radarProductManager->radar_site();
    const double radarLatitude       = radarSite->latitude();
    const double radarLongitude      = radarSite->longitude();

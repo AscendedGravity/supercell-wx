@@ -192,8 +192,16 @@ public:
                level2ProviderManager_->provider_));
       }
    }
-   ~RadarProductManagerImpl()
+   ~RadarProductManagerImpl() { Shutdown(); }
+
+   void Shutdown()
    {
+      bool expected = false;
+      if (!destroyed_.compare_exchange_strong(expected, true))
+      {
+         return;
+      }
+
       const bool shutdown = true;
 
       level2ProviderManager_->Disable(shutdown);
@@ -339,13 +347,17 @@ public:
                       boost::hash<boost::uuids::uuid>>
                      refreshMap_ {};
    std::shared_mutex refreshMapMutex_ {};
+   std::atomic<bool> destroyed_ {false};
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
     p(std::make_unique<RadarProductManagerImpl>(this, radarId))
 {
 }
-RadarProductManager::~RadarProductManager() = default;
+RadarProductManager::~RadarProductManager()
+{
+   p->Shutdown();
+}
 
 std::string ProviderManager::name() const
 {
@@ -1438,6 +1450,11 @@ RadarProductManagerImpl::GetLevel2ProductRecords(
                            // Populate product times
                            PopulateLevel2ProductTimes(time);
 
+                           if (destroyed_)
+                           {
+                              return;
+                           }
+
                            // Signal finished
                            Q_EMIT self_->ProductTimesPopulated(
                               common::RadarProductGroup::Level2, "", time);
@@ -1587,6 +1604,11 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
                         {
                            // Populate product times
                            PopulateLevel3ProductTimes(product, time);
+
+                           if (destroyed_)
+                           {
+                              return;
+                           }
 
                            // Signal finished
                            Q_EMIT self_->ProductTimesPopulated(

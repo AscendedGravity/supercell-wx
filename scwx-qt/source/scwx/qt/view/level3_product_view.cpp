@@ -128,11 +128,20 @@ Level3ProductView::Level3ProductView(
 {
    ConnectRadarProductManager();
 }
-Level3ProductView::~Level3ProductView() = default;
+Level3ProductView::~Level3ProductView()
+{
+   DisconnectRadarProductManager();
+}
 
 void Level3ProductView::ConnectRadarProductManager()
 {
-   connect(radar_product_manager().get(),
+   auto radarProductManager = radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
+
+   connect(radarProductManager.get(),
            &manager::RadarProductManager::DataReloaded,
            this,
            [this](std::shared_ptr<types::RadarProductRecord> record)
@@ -148,7 +157,7 @@ void Level3ProductView::ConnectRadarProductManager()
               }
            });
 
-   connect(radar_product_manager().get(),
+   connect(radarProductManager.get(),
            &manager::RadarProductManager::ProductTimesPopulated,
            this,
            [this](common::RadarProductGroup             group,
@@ -167,10 +176,13 @@ void Level3ProductView::ConnectRadarProductManager()
 
 void Level3ProductView::DisconnectRadarProductManager()
 {
-   disconnect(radar_product_manager().get(),
-              &manager::RadarProductManager::DataReloaded,
-              this,
-              nullptr);
+   auto radarProductManager = radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
+
+   disconnect(radarProductManager.get(), nullptr, this, nullptr);
 }
 
 std::shared_ptr<common::ColorTable> Level3ProductView::color_table() const

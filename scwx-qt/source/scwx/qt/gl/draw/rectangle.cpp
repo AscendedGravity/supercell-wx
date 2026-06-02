@@ -153,8 +153,16 @@ void Rectangle::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
 void Rectangle::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(1, &p->vbo_);
+   if (p->vao_ != GL_INVALID_INDEX)
+   {
+      glDeleteVertexArrays(1, &p->vao_);
+      p->vao_ = GL_INVALID_INDEX;
+   }
+   if (p->vbo_ != GL_INVALID_INDEX)
+   {
+      glDeleteBuffers(1, &p->vbo_);
+      p->vbo_ = GL_INVALID_INDEX;
+   }
 }
 
 void Rectangle::SetBorder(float width, boost::gil::rgba8_pixel_t color)

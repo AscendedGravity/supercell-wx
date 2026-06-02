@@ -213,14 +213,23 @@ void ColorTableLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
 
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(2, p->vbo_.data());
-   glDeleteTextures(1, &p->texture_);
+   if (p->vao_ != GL_INVALID_INDEX)
+   {
+      glDeleteVertexArrays(1, &p->vao_);
+      p->vao_ = GL_INVALID_INDEX;
+   }
+   if (p->vbo_[0] != GL_INVALID_INDEX)
+   {
+      glDeleteBuffers(2, p->vbo_.data());
+      p->vbo_ = {GL_INVALID_INDEX};
+   }
+   if (p->texture_ != GL_INVALID_INDEX)
+   {
+      glDeleteTextures(1, &p->texture_);
+      p->texture_ = GL_INVALID_INDEX;
+   }
 
    p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
-   p->vao_                = GL_INVALID_INDEX;
-   p->vbo_                = {GL_INVALID_INDEX};
-   p->texture_            = GL_INVALID_INDEX;
 }
 
 } // namespace scwx::qt::map

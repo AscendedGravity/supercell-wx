@@ -2903,20 +2903,30 @@ void MapWidgetImpl::RadarProductManagerConnect()
                   }
 
                   // Load file
+                  auto radarProductManager = radarProductManager_;
                   boost::asio::post(
                      threadPool_,
-                     [group, latestTime, request, product, this]()
+                     [group,
+                      latestTime,
+                      request,
+                      product,
+                      this,
+                      radarProductManager]()
                      {
                         try
                         {
+                           if (radarProductManager == nullptr)
+                           {
+                              return;
+                           }
                            if (group == common::RadarProductGroup::Level2)
                            {
-                              radarProductManager_->LoadLevel2Data(latestTime,
-                                                                   request);
+                              radarProductManager->LoadLevel2Data(latestTime,
+                                                                  request);
                            }
                            else
                            {
-                              radarProductManager_->LoadLevel3Data(
+                              radarProductManager->LoadLevel3Data(
                                  product, latestTime, request);
                            }
                         }
@@ -2936,14 +2946,7 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 {
    if (radarProductManager_ != nullptr)
    {
-      disconnect(radarProductManager_.get(),
-                 &manager::RadarProductManager::NewDataAvailable,
-                 this,
-                 nullptr);
-      disconnect(radarProductManager_.get(),
-                 &manager::RadarProductManager::IncomingLevel2ElevationChanged,
-                 this,
-                 nullptr);
+      disconnect(radarProductManager_.get(), nullptr, this, nullptr);
    }
 }
 
@@ -3030,18 +3033,8 @@ void MapWidgetImpl::RadarProductViewDisconnect()
 
    if (radarProductView != nullptr)
    {
-      disconnect(radarProductView.get(),
-                 &view::RadarProductView::ColorTableLutUpdated,
-                 widget_,
-                 nullptr);
-      disconnect(radarProductView.get(),
-                 &view::RadarProductView::SweepComputed,
-                 this,
-                 nullptr);
-      disconnect(radarProductView.get(),
-                 &view::RadarProductView::SweepNotComputed,
-                 widget_,
-                 nullptr);
+      disconnect(radarProductView.get(), nullptr, this, nullptr);
+      disconnect(radarProductView.get(), nullptr, widget_, nullptr);
    }
 }
 

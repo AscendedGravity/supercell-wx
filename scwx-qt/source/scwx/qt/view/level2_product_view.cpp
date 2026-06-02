@@ -210,11 +210,18 @@ Level2ProductView::Level2ProductView(
 Level2ProductView::~Level2ProductView()
 {
    std::unique_lock sweepLock {sweep_mutex()};
+   DisconnectRadarProductManager();
 }
 
 void Level2ProductView::ConnectRadarProductManager()
 {
-   connect(radar_product_manager().get(),
+   auto radarProductManager = radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
+
+   connect(radarProductManager.get(),
            &manager::RadarProductManager::DataReloaded,
            this,
            [this](std::shared_ptr<types::RadarProductRecord> record)
@@ -227,7 +234,7 @@ void Level2ProductView::ConnectRadarProductManager()
               }
            });
 
-   connect(radar_product_manager().get(),
+   connect(radarProductManager.get(),
            &manager::RadarProductManager::ProductTimesPopulated,
            this,
            [this](common::RadarProductGroup group,
@@ -246,10 +253,13 @@ void Level2ProductView::ConnectRadarProductManager()
 
 void Level2ProductView::DisconnectRadarProductManager()
 {
-   disconnect(radar_product_manager().get(),
-              &manager::RadarProductManager::DataReloaded,
-              this,
-              nullptr);
+   auto radarProductManager = radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
+
+   disconnect(radarProductManager.get(), nullptr, this, nullptr);
 }
 
 boost::asio::thread_pool& Level2ProductView::thread_pool()
@@ -655,6 +665,13 @@ void Level2ProductView::ComputeSweep()
    std::scoped_lock                              sweepLock(sweep_mutex());
    std::shared_ptr<manager::RadarProductManager> radarProductManager =
       radar_product_manager();
+
+   if (radarProductManager == nullptr)
+   {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
+      return;
+   }
+
    const bool isHca =
       p->product_ == common::Level2Product::HydrometeorClassification;
    const bool isTds =
@@ -1409,6 +1426,10 @@ void Level2ProductView::Impl::ComputeCoordinates(
       util::GeographicLib::DefaultGeodesic());
 
    auto         radarProductManager = self_->radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
    auto         radarSite           = radarProductManager->radar_site();
    const float  gateSize            = radarProductManager->gate_size();
    const double radarLatitude       = radarSite->latitude();
@@ -1639,6 +1660,10 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    auto         radarProductManager = radar_product_manager();
+   if (radarProductManager == nullptr)
+   {
+      return std::nullopt;
+   }
    auto         radarSite           = radarProductManager->radar_site();
    const double radarLatitude       = radarSite->latitude();
    const double radarLongitude      = radarSite->longitude();

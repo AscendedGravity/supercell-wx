@@ -385,16 +385,22 @@ void RadarProductLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
 
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(3, p->vbo_.data());
+   if (p->vao_ != GL_INVALID_INDEX)
+   {
+      glDeleteVertexArrays(1, &p->vao_);
+      p->vao_ = GL_INVALID_INDEX;
+   }
+   if (p->vbo_[0] != GL_INVALID_INDEX)
+   {
+      glDeleteBuffers(3, p->vbo_.data());
+      p->vbo_ = {GL_INVALID_INDEX};
+   }
 
    p->uMVPMatrixLocation_        = GL_INVALID_INDEX;
    p->uOriginLatLongLocation_    = GL_INVALID_INDEX;
    p->uDataMomentOffsetLocation_ = GL_INVALID_INDEX;
    p->uDataMomentScaleLocation_  = GL_INVALID_INDEX;
    p->uCFPEnabledLocation_       = GL_INVALID_INDEX;
-   p->vao_                       = GL_INVALID_INDEX;
-   p->vbo_                       = {GL_INVALID_INDEX};
    p->texture_                   = GL_INVALID_INDEX;
 }
 

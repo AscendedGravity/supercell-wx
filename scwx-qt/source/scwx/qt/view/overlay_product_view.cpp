@@ -91,6 +91,11 @@ void OverlayProductView::set_radar_product_manager(
 
 void OverlayProductView::Impl::ConnectRadarProductManager()
 {
+   if (radarProductManager_ == nullptr)
+   {
+      return;
+   }
+
    connect(radarProductManager_.get(),
            &manager::RadarProductManager::DataReloaded,
            self_,
@@ -146,10 +151,7 @@ void OverlayProductView::Impl::DisconnectRadarProductManager()
 {
    if (radarProductManager_ != nullptr)
    {
-      disconnect(radarProductManager_.get(),
-                 &manager::RadarProductManager::NewDataAvailable,
-                 self_,
-                 nullptr);
+      disconnect(radarProductManager_.get(), nullptr, self_, nullptr);
    }
 }
 
@@ -161,10 +163,16 @@ void OverlayProductView::Impl::LoadProduct(
    logger_->debug(
       "Load Product: {}, {}, {}", product, util::TimeString(time), autoUpdate);
 
+   auto radarProductManager = radarProductManager_;
+   if (radarProductManager == nullptr)
+   {
+      return;
+   }
+
    // Create file request
    std::shared_ptr<request::NexradFileRequest> request =
       std::make_shared<request::NexradFileRequest>(
-         radarProductManager_->radar_id());
+         radarProductManager->radar_id());
 
    if (autoUpdate)
    {
@@ -255,7 +263,7 @@ void OverlayProductView::Impl::LoadProduct(
                      {
                         try
                         {
-                           radarProductManager_->LoadLevel3Data(
+                           radarProductManager->LoadLevel3Data(
                               product, time, request);
                         }
                         catch (const std::exception& ex)
