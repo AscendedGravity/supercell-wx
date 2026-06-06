@@ -10,6 +10,8 @@
 #include <vector>
 #include <utility>
 
+#include <QDateTime>
+
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/json/value.hpp>
@@ -107,19 +109,26 @@ public:
             wisObj.at("forecast_reasoning").as_string().c_str();
          std::string timestamp = wisObj.at("timestamp").as_string().c_str();
 
-         // Parse forecast changes
-         std::vector<std::pair<int, double>> forecastChanges;
-         if (wisObj.contains("forecast_changes"))
+         // Parse score history (last ~30 minutes of actual data)
+         std::vector<double> scoreHistory;
+         if (jsonRoot.contains("score_history"))
          {
-            auto& fcObj = wisObj.at("forecast_changes").as_object();
-            for (const auto& [key, val] : fcObj)
+            auto& shArr = jsonRoot.at("score_history").as_array();
+            for (const auto& entry : shArr)
             {
-               // Keys are "minute_1", "minute_2", ... "minute_30"
-               std::string keyStr {key.data(), key.size()};
-               if (keyStr.starts_with("minute_"))
+               auto&  obj = entry.as_object();
+               double entryScore =
+                  obj.at("weather_intensity_score").to_number<double>();
+               std::string ts = obj.at("timestamp").as_string().c_str();
+
+               // Filter to last ~30 minutes
+               // Parse ISO timestamp and check if within 30 minutes
+               QDateTime entryTime = QDateTime::fromString(
+                  QString::fromStdString(ts), Qt::ISODate);
+               QDateTime now = QDateTime::currentDateTimeUtc();
+               if (entryTime.isValid() && entryTime.secsTo(now) <= 30 * 60)
                {
-                  int minute = std::stoi(keyStr.substr(7));
-                  forecastChanges.emplace_back(minute, val.to_number<double>());
+                  scoreHistory.push_back(entryScore);
                }
             }
          }
@@ -193,7 +202,7 @@ public:
             eventEnd_                        = eventEnd;
             forecastReasoning_               = forecastReasoning;
             timestamp_                       = timestamp;
-            forecastChanges_                 = std::move(forecastChanges);
+            scoreHistory_                    = std::move(scoreHistory);
             dailyOutlooks_                   = std::move(dailyOutlooks);
             wisData_                         = std::move(wisObj);
          }
@@ -252,7 +261,7 @@ public:
    std::string                           eventEnd_;
    std::string                           forecastReasoning_;
    std::string                           timestamp_;
-   std::vector<std::pair<int, double>>   forecastChanges_ {};
+   std::vector<double>                   scoreHistory_ {};
    std::vector<WisManager::DailyOutlook> dailyOutlooks_ {};
    boost::json::value wisData_;
 
@@ -346,10 +355,10 @@ std::string WisManager::GetTimestamp() const
    return p->timestamp_;
 }
 
-std::vector<std::pair<int, double>> WisManager::GetForecastChanges() const
+std::vector<double> WisManager::GetScoreHistory() const
 {
    const std::lock_guard<std::mutex> lock(p->dataMutex_);
-   return p->forecastChanges_;
+   return p->scoreHistory_;
 }
 
 std::vector<WisManager::DailyOutlook> WisManager::GetDailyOutlookScores() const

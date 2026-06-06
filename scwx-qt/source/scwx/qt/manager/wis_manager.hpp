@@ -35,7 +35,7 @@ public:
    std::string GetEventEnd() const;
    std::string GetForecastReasoning() const;
    std::string GetTimestamp() const;
-   std::vector<std::pair<int, double>> GetForecastChanges() const;
+   std::vector<double> GetScoreHistory() const;
 
    struct DailyOutlook
    {

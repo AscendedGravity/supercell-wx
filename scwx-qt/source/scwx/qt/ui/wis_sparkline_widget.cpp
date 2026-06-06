@@ -51,7 +51,7 @@ public:
    }
 
    WisSparklineWidget*                 self_;
-   std::vector<std::pair<int, double>> data_ {};
+   std::vector<double>                 data_ {};
    double                              threshold_ {0.0};
    QColor                              textColor_ {Qt::white};
 };
@@ -65,8 +65,7 @@ WisSparklineWidget::WisSparklineWidget(QWidget* parent) :
 
 WisSparklineWidget::~WisSparklineWidget() = default;
 
-void WisSparklineWidget::SetData(
-   const std::vector<std::pair<int, double>>& values)
+void WisSparklineWidget::SetData(const std::vector<double>& values)
 {
    p->data_ = values;
    update();
@@ -99,7 +98,7 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    if (p->data_.empty())
    {
       painter.setPen(p->textColor_);
-      painter.drawText(rect(), Qt::AlignCenter, tr("No forecast data"));
+      painter.drawText(rect(), Qt::AlignCenter, tr("No score history"));
       return;
    }
 
@@ -124,7 +123,7 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    // Find min/max values
    double minVal = std::numeric_limits<double>::max();
    double maxVal = std::numeric_limits<double>::lowest();
-   for (const auto& [minute, value] : p->data_)
+   for (const auto& value : p->data_)
    {
       minVal = std::min(minVal, value);
       maxVal = std::max(maxVal, value);
@@ -147,16 +146,14 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    const double plotW = plotRight - plotLeft;
    const double plotH = plotBottom - plotTop;
 
-   auto MapX = [&](int minute) -> double
+   auto MapX = [&](size_t index) -> double
    {
       const size_t n = p->data_.size();
       if (n <= 1)
       {
          return plotLeft + plotW * 0.5;
       }
-      const double t =
-         static_cast<double>(minute - p->data_.front().first) /
-         static_cast<double>(p->data_.back().first - p->data_.front().first);
+      const double t = static_cast<double>(index) / static_cast<double>(n - 1);
       return plotLeft + t * plotW;
    };
 
@@ -169,10 +166,10 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    // Build the line path
    QPainterPath linePath;
    bool         first = true;
-   for (const auto& [minute, value] : p->data_)
+   for (size_t i = 0; i < p->data_.size(); ++i)
    {
-      const double x = MapX(minute);
-      const double y = MapY(value);
+      const double x = MapX(i);
+      const double y = MapY(p->data_[i]);
       if (first)
       {
          linePath.moveTo(x, y);
@@ -185,7 +182,7 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    }
 
    // Color the line based on the last value
-   const double lastVal   = p->data_.empty() ? 0.0 : p->data_.back().second;
+   const double lastVal   = p->data_.empty() ? 0.0 : p->data_.back();
    const QColor lineColor = ScoreColor(lastVal, p->threshold_);
 
    // Draw the line
@@ -219,22 +216,20 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    painter.setPen(p->textColor_);
 
    // Max label at top
-   const auto [maxMinute, maxValue] = *std::max_element(
-      p->data_.begin(),
-      p->data_.end(),
-      [](const auto& a, const auto& b) { return a.second < b.second; });
-   const double maxX = MapX(maxMinute);
+   auto         maxIt    = std::max_element(p->data_.begin(), p->data_.end());
+   size_t       maxIdx   = std::distance(p->data_.begin(), maxIt);
+   double       maxValue = *maxIt;
+   const double maxX     = MapX(maxIdx);
    const double maxY = MapY(maxValue);
    QRectF       maxLabelRect(maxX - 30, maxY - 16, 60, 14);
    painter.drawText(
       maxLabelRect, Qt::AlignCenter, QString::number(maxValue, 'f', 1));
 
    // Min label at bottom
-   const auto [minMinute, minValue2] = *std::min_element(
-      p->data_.begin(),
-      p->data_.end(),
-      [](const auto& a, const auto& b) { return a.second < b.second; });
-   const double minX = MapX(minMinute);
+   auto         minIt     = std::min_element(p->data_.begin(), p->data_.end());
+   size_t       minIdx    = std::distance(p->data_.begin(), minIt);
+   double       minValue2 = *minIt;
+   const double minX      = MapX(minIdx);
    const double minY = MapY(minValue2);
    QRectF       minLabelRect(minX - 30, minY + 2, 60, 14);
    painter.drawText(

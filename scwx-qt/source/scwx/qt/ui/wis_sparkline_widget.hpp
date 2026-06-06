@@ -18,7 +18,7 @@ public:
    explicit WisSparklineWidget(QWidget* parent = nullptr);
    ~WisSparklineWidget();
 
-   void SetData(const std::vector<std::pair<int, double>>& values);
+   void SetData(const std::vector<double>& values);
    void SetThreshold(double threshold);
 
    QSize minimumSizeHint() const override;

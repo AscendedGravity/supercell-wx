@@ -119,7 +119,7 @@ public:
       scrollLayout->addWidget(currentConditionsGroup_);
 
       // -- Section 2: 30-Minute Forecast --
-      forecastGroup_   = new CollapsibleGroup(tr("30-Minute Forecast"), self_);
+      forecastGroup_   = new CollapsibleGroup(tr("Score History"), self_);
       sparklineWidget_ = new WisSparklineWidget(self_);
       forecastGroup_->GetContentsLayout()->addWidget(sparklineWidget_);
 
@@ -133,8 +133,8 @@ public:
 
       scrollLayout->addWidget(forecastGroup_);
 
-      // -- Section 3: Stream Schedule --
-      scheduleGroup_  = new CollapsibleGroup(tr("Stream Schedule"), self_);
+      // -- Section 3: Event Schedule --
+      scheduleGroup_  = new CollapsibleGroup(tr("Event Schedule"), self_);
       auto* schedGrid = new QGridLayout();
       schedGrid->setContentsMargins(4, 4, 4, 4);
       schedGrid->setSpacing(6);
@@ -267,7 +267,7 @@ public:
       std::string forecastReasoning = wisManager->GetForecastReasoning();
       std::string timestamp         = wisManager->GetTimestamp();
 
-      auto forecastChanges = wisManager->GetForecastChanges();
+      auto scoreHistory    = wisManager->GetScoreHistory();
       auto dailyOutlooks   = wisManager->GetDailyOutlookScores();
 
       // Update current conditions
@@ -306,10 +306,10 @@ public:
          QString("color: %1; font-weight: bold;").arg(modeColor));
 
       // Update sparkline
-      sparklineWidget_->SetData(forecastChanges);
+      sparklineWidget_->SetData(scoreHistory);
       sparklineWidget_->SetThreshold(threshold);
 
-      // Update stream schedule
+      // Update event schedule
       eventStartLabel_->setText(QString::fromStdString(eventStart));
       eventPeakLabel_->setText(QString::fromStdString(eventPeak));
       standbyUntilLabel_->setText(QString::fromStdString(standbyUntil));
