@@ -359,8 +359,10 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/sounding_parameters_widget.hpp
            source/scwx/qt/ui/threshold_line_edit_sync.hpp
            source/scwx/qt/ui/threshold_value_utility.hpp
-           source/scwx/qt/ui/update_dialog.hpp
-           source/scwx/qt/ui/wfo_dialog.hpp)
+            source/scwx/qt/ui/update_dialog.hpp
+            source/scwx/qt/ui/wfo_dialog.hpp
+            source/scwx/qt/ui/wis_details_dialog.hpp
+            source/scwx/qt/ui/wis_sparkline_widget.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
             source/scwx/qt/ui/alert_dialog.cpp
             source/scwx/qt/ui/mesoscale_discussion_dialog.cpp
@@ -400,7 +402,9 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/sounding_panel.cpp
            source/scwx/qt/ui/sounding_parameters_widget.cpp
            source/scwx/qt/ui/update_dialog.cpp
-           source/scwx/qt/ui/wfo_dialog.cpp)
+            source/scwx/qt/ui/wfo_dialog.cpp
+            source/scwx/qt/ui/wis_details_dialog.cpp
+            source/scwx/qt/ui/wis_sparkline_widget.cpp)
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui
             source/scwx/qt/ui/alert_dialog.ui
             source/scwx/qt/ui/mesoscale_discussion_dialog.ui
@@ -426,7 +430,8 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/serial_port_dialog.ui
            source/scwx/qt/ui/update_dialog.ui
-           source/scwx/qt/ui/wfo_dialog.ui)
+            source/scwx/qt/ui/wfo_dialog.ui
+            source/scwx/qt/ui/wis_details_dialog.ui)
 set(HDR_UI_IMPORT source/scwx/qt/ui/import/import_options_page.hpp
                   source/scwx/qt/ui/import/import_settings_wizard.hpp
                   source/scwx/qt/ui/import/select_file_page.hpp)

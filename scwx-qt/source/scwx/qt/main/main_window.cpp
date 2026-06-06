@@ -56,6 +56,7 @@
 #include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/qt/ui/sounding_panel.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
+#include <scwx/qt/ui/wis_details_dialog.hpp>
 #include <scwx/qt/ui/mesoscale_discussion_dialog.hpp>
 #include <scwx/qt/ui/import/import_settings_wizard.hpp>
 #include <scwx/common/characters.hpp>
@@ -394,7 +395,8 @@ public:
    ui::MarkerDialog*                 markerDialog_ {};
    ui::RadarSiteDialog*              radarSiteDialog_ {};
    ui::SettingsDialog*               settingsDialog_ {};
-   ui::UpdateDialog*                 updateDialog_ {};
+   ui::UpdateDialog*                     updateDialog_ {};
+   ui::WisDetailsDialog*                 wisDetailsDialog_ {nullptr};
 
    QTimer clockTimer_ {};
 
@@ -909,6 +911,9 @@ MainWindow::MainWindow(QWidget* parent) :
    p->wisLabel_->setFrameShape(QFrame::Shape::Box);
    p->wisLabel_->setFrameShadow(QFrame::Shadow::Sunken);
    p->wisLabel_->setVisible(false);
+   p->wisLabel_->installEventFilter(this);
+   p->wisLabel_->setCursor(Qt::PointingHandCursor);
+   p->wisLabel_->setToolTip(tr("Click to view WIS details"));
 
    QGridLayout* statusBarLayout = new QGridLayout(statusBarWidget);
    statusBarLayout->setContentsMargins(0, 0, 0, 0);
@@ -925,6 +930,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Update Dialog
    p->updateDialog_ = new ui::UpdateDialog(this);
+
+   // WIS Details Dialog
+   p->wisDetailsDialog_ = new ui::WisDetailsDialog(this);
 
    // NOLINTEND(cppcoreguidelines-owning-memory)
 
@@ -1088,6 +1096,14 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event)
    {
       static constexpr int kDockWidthDebounceMs = 500;
       p->dockWidthSaveTimer_.start(kDockWidthDebounceMs);
+   }
+   else if (obj == p->wisLabel_ && event->type() == QEvent::MouseButtonPress)
+   {
+      p->wisDetailsDialog_->UpdateData();
+      p->wisDetailsDialog_->show();
+      p->wisDetailsDialog_->raise();
+      p->wisDetailsDialog_->activateWindow();
+      return true;
    }
    return QMainWindow::eventFilter(obj, event);
 }
@@ -3726,6 +3742,12 @@ void MainWindowImpl::ConnectOtherSignals()
                                     .arg(score, 0, 'f', 2)
                                     .arg(threshold, 0, 'f', 2));
               wisLabel_->setVisible(true);
+
+              // Update the dialog if it's currently open
+              if (wisDetailsDialog_->isVisible())
+              {
+                 wisDetailsDialog_->UpdateData();
+              }
            });
 
    auto& generalSettings = settings::GeneralSettings::Instance();

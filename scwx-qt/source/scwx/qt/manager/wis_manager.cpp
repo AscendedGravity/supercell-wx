@@ -7,6 +7,8 @@
 #include <chrono>
 #include <mutex>
 #include <string>
+#include <vector>
+#include <utility>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -77,20 +79,123 @@ public:
          boost::json::value json =
             scwx::util::json::ReadJsonString(response.text);
 
-         auto& wisObj = json.as_object().at("wis").as_object();
+         auto& jsonRoot = json.as_object();
+         auto& wisObj   = jsonRoot.at("wis").as_object();
 
-         double score      = wisObj.at("weather_intensity_score").as_double();
+         double score =
+            wisObj.at("weather_intensity_score").to_number<double>();
          auto&  streamInfo = wisObj.at("todays_stream_info").as_object();
-         double threshold =
-            streamInfo.at("weather_intensity_score_threshold").as_double();
+         double threshold  = streamInfo.at("weather_intensity_score_threshold")
+                               .to_number<double>();
          std::string mode = streamInfo.at("mode").as_string().c_str();
+
+         double score30mAgo =
+            wisObj.at("weather_intensity_score_30m_ago").to_number<double>();
+         double score30mFromNow =
+            wisObj.at("weather_intensity_score_30m_from_now")
+               .to_number<double>();
+
+         std::string eventStart =
+            streamInfo.at("event_start").as_string().c_str();
+         std::string eventPeak =
+            streamInfo.at("event_peak").as_string().c_str();
+         std::string standbyUntil =
+            streamInfo.at("standby_until").as_string().c_str();
+         std::string eventEnd = streamInfo.at("event_end").as_string().c_str();
+
+         std::string forecastReasoning =
+            wisObj.at("forecast_reasoning").as_string().c_str();
+         std::string timestamp = wisObj.at("timestamp").as_string().c_str();
+
+         // Parse forecast changes
+         std::vector<std::pair<int, double>> forecastChanges;
+         if (wisObj.contains("forecast_changes"))
+         {
+            auto& fcObj = wisObj.at("forecast_changes").as_object();
+            for (const auto& [key, val] : fcObj)
+            {
+               // Keys are "minute_1", "minute_2", ... "minute_30"
+               std::string keyStr {key.data(), key.size()};
+               if (keyStr.starts_with("minute_"))
+               {
+                  int minute = std::stoi(keyStr.substr(7));
+                  forecastChanges.emplace_back(minute, val.to_number<double>());
+               }
+            }
+         }
+
+         // Parse daily outlook scores
+         std::vector<DailyOutlook> dailyOutlooks;
+         if (jsonRoot.contains("daily_outlook_scores"))
+         {
+            auto& dosObj = jsonRoot.at("daily_outlook_scores").as_object();
+            for (int day = 1; day <= 7; ++day)
+            {
+               std::string dayKey = "day" + std::to_string(day);
+               if (!dosObj.contains(dayKey))
+               {
+                  continue;
+               }
+               auto& dayObj = dosObj.at(dayKey).as_object();
+               auto& pubObj = dayObj.at("public").as_object();
+
+               DailyOutlook outlook;
+               outlook.dos_score = dayObj.at("dos_score").to_number<double>();
+               outlook.day_name  = pubObj.at("day_name").as_string().c_str();
+               outlook.date      = pubObj.at("date").as_string().c_str();
+
+               // chance fields are under "public" with full Ryan-specific names
+               if (pubObj.contains("chance_ryan_goes_live_this_day"))
+               {
+                  outlook.chance_live =
+                     pubObj.at("chance_ryan_goes_live_this_day")
+                        .as_string()
+                        .c_str();
+               }
+               if (pubObj.contains("chance_ryan_makes_a_video_this_day"))
+               {
+                  outlook.chance_video =
+                     pubObj.at("chance_ryan_makes_a_video_this_day")
+                        .as_string()
+                        .c_str();
+               }
+
+               // threshold and mode are in stream_info, not public
+               if (dayObj.contains("stream_info"))
+               {
+                  auto& dayStreamInfo = dayObj.at("stream_info").as_object();
+                  if (dayStreamInfo.contains("threshold"))
+                  {
+                     outlook.threshold =
+                        dayStreamInfo.at("threshold").to_number<double>();
+                  }
+                  if (dayStreamInfo.contains("mode"))
+                  {
+                     outlook.mode =
+                        dayStreamInfo.at("mode").as_string().c_str();
+                  }
+               }
+
+               dailyOutlooks.push_back(std::move(outlook));
+            }
+         }
 
          {
             const std::lock_guard<std::mutex> lock(dataMutex_);
-            weatherIntensityScore_          = score;
-            weatherIntensityScoreThreshold_ = threshold;
-            mode_                           = mode;
-            wisData_                        = std::move(wisObj);
+            weatherIntensityScore_           = score;
+            weatherIntensityScoreThreshold_  = threshold;
+            mode_                            = mode;
+            weatherIntensityScore30mAgo_     = score30mAgo;
+            weatherIntensityScore30mFromNow_ = score30mFromNow;
+            eventStart_                      = eventStart;
+            eventPeak_                       = eventPeak;
+            standbyUntil_                    = standbyUntil;
+            eventEnd_                        = eventEnd;
+            forecastReasoning_               = forecastReasoning;
+            timestamp_                       = timestamp;
+            forecastChanges_                 = std::move(forecastChanges);
+            dailyOutlooks_                   = std::move(dailyOutlooks);
+            wisData_                         = std::move(wisObj);
          }
 
          logger_->info("WIS data updated: score={}, threshold={}, mode={}",
@@ -139,6 +244,16 @@ public:
    double             weatherIntensityScore_ {0.0};
    double             weatherIntensityScoreThreshold_ {0.0};
    std::string        mode_;
+   double                                weatherIntensityScore30mAgo_ {0.0};
+   double                                weatherIntensityScore30mFromNow_ {0.0};
+   std::string                           eventStart_;
+   std::string                           eventPeak_;
+   std::string                           standbyUntil_;
+   std::string                           eventEnd_;
+   std::string                           forecastReasoning_;
+   std::string                           timestamp_;
+   std::vector<std::pair<int, double>>   forecastChanges_ {};
+   std::vector<WisManager::DailyOutlook> dailyOutlooks_ {};
    boost::json::value wisData_;
 
    boost::asio::thread_pool threadPool_ {1u};
@@ -181,6 +296,66 @@ std::string WisManager::GetMode() const
 {
    const std::lock_guard<std::mutex> lock(p->dataMutex_);
    return p->mode_;
+}
+
+double WisManager::GetWeatherIntensityScore30mAgo() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->weatherIntensityScore30mAgo_;
+}
+
+double WisManager::GetWeatherIntensityScore30mFromNow() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->weatherIntensityScore30mFromNow_;
+}
+
+std::string WisManager::GetEventStart() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->eventStart_;
+}
+
+std::string WisManager::GetEventPeak() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->eventPeak_;
+}
+
+std::string WisManager::GetStandbyUntil() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->standbyUntil_;
+}
+
+std::string WisManager::GetEventEnd() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->eventEnd_;
+}
+
+std::string WisManager::GetForecastReasoning() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->forecastReasoning_;
+}
+
+std::string WisManager::GetTimestamp() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->timestamp_;
+}
+
+std::vector<std::pair<int, double>> WisManager::GetForecastChanges() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->forecastChanges_;
+}
+
+std::vector<WisManager::DailyOutlook> WisManager::GetDailyOutlookScores() const
+{
+   const std::lock_guard<std::mutex> lock(p->dataMutex_);
+   return p->dailyOutlooks_;
 }
 
 void WisManager::FetchWisAsync()

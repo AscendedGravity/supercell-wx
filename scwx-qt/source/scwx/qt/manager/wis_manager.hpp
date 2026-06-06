@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <utility>
 
 #include <QObject>
 #include <QTimer>
@@ -24,6 +26,28 @@ public:
    double      GetWeatherIntensityScore() const;
    double      GetWeatherIntensityScoreThreshold() const;
    std::string GetMode() const;
+
+   double      GetWeatherIntensityScore30mAgo() const;
+   double      GetWeatherIntensityScore30mFromNow() const;
+   std::string GetEventStart() const;
+   std::string GetEventPeak() const;
+   std::string GetStandbyUntil() const;
+   std::string GetEventEnd() const;
+   std::string GetForecastReasoning() const;
+   std::string GetTimestamp() const;
+   std::vector<std::pair<int, double>> GetForecastChanges() const;
+
+   struct DailyOutlook
+   {
+      double      dos_score;
+      std::string day_name;
+      std::string date;
+      std::string chance_live;
+      std::string chance_video;
+      double      threshold;
+      std::string mode;
+   };
+   std::vector<DailyOutlook> GetDailyOutlookScores() const;
 
    static std::shared_ptr<WisManager> Instance();
 
