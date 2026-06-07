@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WisDetailsDialog</class>
+ <widget class="QDialog" name="WisDetailsDialog">
+  <property name="geometry">
+    <rect><x>0</x><y>0</y><width>750</width><height>700</height></rect>
+  </property>
+  <property name="windowTitle">
+   <string>Weather Intensity Score</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QScrollArea" name="scrollArea">
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <widget class="QWidget" name="scrollContent">
+      <layout class="QVBoxLayout" name="scrollLayout"/>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="bottomFrame">
+     <layout class="QHBoxLayout" name="bottomLayout">
+      <property name="leftMargin"><number>0</number></property>
+      <property name="topMargin"><number>0</number></property>
+      <property name="rightMargin"><number>0</number></property>
+      <property name="bottomMargin"><number>0</number></property>
+      <item>
+       <widget class="QLabel" name="lastUpdatedLabel">
+        <property name="text"><string>Last updated: --</string></property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QDialogButtonBox" name="buttonBox">
+        <property name="standardButtons">
+         <set>QDialogButtonBox::StandardButton::Close</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../../../../scwx-qt.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>WisDetailsDialog</receiver>
+   <slot>reject()</slot>
+  </connection>
+ </connections>
+</ui>
