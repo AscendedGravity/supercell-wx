@@ -1,3 +1,0 @@
-conan
-geopandas
-GitPython

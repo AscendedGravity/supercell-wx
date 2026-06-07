@@ -9,13 +9,12 @@
 :: Activate Python Virtual Environment
 @if defined venv_path (
     echo Activating Python Virtual Environment: %venv_path%
-    py -3 -m venv "%venv_path%"
+    uv venv --clear "%venv_path%"
     call "%venv_path%\Scripts\activate.bat"
 )
 
 :: Install Python packages
-py -3 -m pip install --upgrade pip
-pip install --upgrade -r "%script_dir%\..\..\requirements.txt"
+uv sync
 
 @if defined build_type (
     :: Install Conan profile and packages

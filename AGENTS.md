@@ -106,7 +106,7 @@ On Windows, use the provided build script to ensure the MSVC environment is prop
 **CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-vs2026-x64-ninja-release` encapsulate toolchain/profile selection.
 
 ### Python Virtual Environment
-Project uses Python for code generation (counties DB, version info). Setup scripts create `.venv/` with requirements from [requirements.txt](requirements.txt). CMake macro `scwx_python_setup()` in [tools/scwx_config.cmake](tools/scwx_config.cmake) finds the venv Python.
+Project uses Python for code generation (counties DB, version info). Python dependency management uses **uv** with [pyproject.toml](pyproject.toml) and [uv.lock](uv.lock). Setup scripts create `.venv/` and sync dependencies via `uv sync`. **uv must be installed** as a prerequisite (install via `pip install uv` or the [official installer](https://docs.astral.sh/uv/#installation)). CMake macro `scwx_python_setup()` in [tools/scwx_config.cmake](tools/scwx_config.cmake) finds the venv Python.
 
 ### Build Outputs
 Per [tools/scwx_config.cmake](tools/scwx_config.cmake), binaries go to:
