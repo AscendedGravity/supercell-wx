@@ -249,10 +249,10 @@ public:
    std::atomic<bool>     fetchCancelled_ {false};
    std::atomic<uint64_t> currentFetchId_ {0};
 
-   mutable std::mutex dataMutex_;
-   double             weatherIntensityScore_ {0.0};
-   double             weatherIntensityScoreThreshold_ {0.0};
-   std::string        mode_;
+   mutable std::mutex                    dataMutex_;
+   double                                weatherIntensityScore_ {0.0};
+   double                                weatherIntensityScoreThreshold_ {0.0};
+   std::string                           mode_;
    double                                weatherIntensityScore30mAgo_ {0.0};
    double                                weatherIntensityScore30mFromNow_ {0.0};
    std::string                           eventStart_;
@@ -263,7 +263,7 @@ public:
    std::string                           timestamp_;
    std::vector<double>                   scoreHistory_ {};
    std::vector<WisManager::DailyOutlook> dailyOutlooks_ {};
-   boost::json::value wisData_;
+   boost::json::value                    wisData_;
 
    boost::asio::thread_pool threadPool_ {1u};
 };

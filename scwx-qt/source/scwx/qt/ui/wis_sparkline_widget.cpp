@@ -50,10 +50,10 @@ public:
       textColor_          = pal.color(QPalette::WindowText);
    }
 
-   WisSparklineWidget*                 self_;
-   std::vector<double>                 data_ {};
-   double                              threshold_ {0.0};
-   QColor                              textColor_ {Qt::white};
+   WisSparklineWidget* self_;
+   std::vector<double> data_ {};
+   double              threshold_ {0.0};
+   QColor              textColor_ {Qt::white};
 };
 
 WisSparklineWidget::WisSparklineWidget(QWidget* parent) :
@@ -220,7 +220,7 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    size_t       maxIdx   = std::distance(p->data_.begin(), maxIt);
    double       maxValue = *maxIt;
    const double maxX     = MapX(maxIdx);
-   const double maxY = MapY(maxValue);
+   const double maxY     = MapY(maxValue);
    QRectF       maxLabelRect(maxX - 30, maxY - 16, 60, 14);
    painter.drawText(
       maxLabelRect, Qt::AlignCenter, QString::number(maxValue, 'f', 1));
@@ -230,7 +230,7 @@ void WisSparklineWidget::paintEvent(QPaintEvent* /*event*/)
    size_t       minIdx    = std::distance(p->data_.begin(), minIt);
    double       minValue2 = *minIt;
    const double minX      = MapX(minIdx);
-   const double minY = MapY(minValue2);
+   const double minY      = MapY(minValue2);
    QRectF       minLabelRect(minX - 30, minY + 2, 60, 14);
    painter.drawText(
       minLabelRect, Qt::AlignCenter, QString::number(minValue2, 'f', 1));

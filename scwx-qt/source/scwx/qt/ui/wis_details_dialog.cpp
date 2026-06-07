@@ -267,8 +267,8 @@ public:
       std::string forecastReasoning = wisManager->GetForecastReasoning();
       std::string timestamp         = wisManager->GetTimestamp();
 
-      auto scoreHistory    = wisManager->GetScoreHistory();
-      auto dailyOutlooks   = wisManager->GetDailyOutlookScores();
+      auto scoreHistory  = wisManager->GetScoreHistory();
+      auto dailyOutlooks = wisManager->GetDailyOutlookScores();
 
       // Update current conditions
       currentWisLabel_->setText(QString::number(score, 'f', 2));

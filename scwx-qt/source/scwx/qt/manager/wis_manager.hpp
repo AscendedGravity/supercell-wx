@@ -27,14 +27,14 @@ public:
    double      GetWeatherIntensityScoreThreshold() const;
    std::string GetMode() const;
 
-   double      GetWeatherIntensityScore30mAgo() const;
-   double      GetWeatherIntensityScore30mFromNow() const;
-   std::string GetEventStart() const;
-   std::string GetEventPeak() const;
-   std::string GetStandbyUntil() const;
-   std::string GetEventEnd() const;
-   std::string GetForecastReasoning() const;
-   std::string GetTimestamp() const;
+   double              GetWeatherIntensityScore30mAgo() const;
+   double              GetWeatherIntensityScore30mFromNow() const;
+   std::string         GetEventStart() const;
+   std::string         GetEventPeak() const;
+   std::string         GetStandbyUntil() const;
+   std::string         GetEventEnd() const;
+   std::string         GetForecastReasoning() const;
+   std::string         GetTimestamp() const;
    std::vector<double> GetScoreHistory() const;
 
    struct DailyOutlook
