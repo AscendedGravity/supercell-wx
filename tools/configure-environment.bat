@@ -15,13 +15,12 @@
 :: Activate Python Virtual Environment
 @if defined venv_path (
     echo Activating Python Virtual Environment: %venv_path%
-    python -m venv %venv_path%
+    uv venv --clear %venv_path%
     call %venv_path%\Scripts\activate.bat
 )
 
 :: Install Python packages
-python -m pip install --upgrade pip
-pip install --upgrade -r "%script_dir%\..\requirements.txt"
+uv sync
 
 :: Configure default Conan profile
 @conan profile detect -e

@@ -48,11 +48,15 @@ macro(scwx_python_setup)
 
     # Only if we are in an application defined virtual environment
     if (SCWX_VIRTUAL_ENV)
-        # Setup pip
-        set(PIP_ARGS install --upgrade -r "${CMAKE_SOURCE_DIR}/requirements.txt")
+        # Check uv availability
+        find_program(UV_PROGRAM uv)
+        if (NOT UV_PROGRAM)
+            message(FATAL_ERROR "uv is required but was not found. Install via: pip install uv or https://docs.astral.sh/uv/#installation")
+        endif()
 
-        # Install requirements
-        execute_process(COMMAND ${Python3_EXECUTABLE} -m pip ${PIP_ARGS}
-                        RESULT_VARIABLE PIP_RESULT)
+        # Sync dependencies
+        execute_process(COMMAND uv sync
+                        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                        RESULT_VARIABLE UV_RESULT)
     endif()
 endmacro()
