@@ -169,6 +169,10 @@ public:
           &alertAudioRadius_,
           &alertAudioCounty_,
           &alertAudioWFO_,
+          &tornadoBaseAudioSoundFile_,
+          &tornadoConsiderableAudioSoundFile_,
+          &tornadoCatastrophicAudioSoundFile_,
+          &tornadoObservedAudioSoundFile_,
           &masterVolume_,
           &hoverTextWrap_,
           &tooltipMethod_,
@@ -309,6 +313,13 @@ public:
    std::unordered_map<awips::Phenomenon,
                       settings::SettingsInterface<std::string>>
       alertAudioSoundFiles_ {};
+
+   settings::SettingsInterface<std::string> tornadoBaseAudioSoundFile_ {};
+   settings::SettingsInterface<std::string>
+      tornadoConsiderableAudioSoundFile_ {};
+   settings::SettingsInterface<std::string>
+      tornadoCatastrophicAudioSoundFile_ {};
+   settings::SettingsInterface<std::string> tornadoObservedAudioSoundFile_ {};
 
    settings::SettingsInterface<std::int64_t> masterVolume_ {};
 
@@ -1430,6 +1441,139 @@ void SettingsDialogImpl::SetupAudioTab()
          });
 
       // Wire up test button — plays this row's sound file
+      QObject::connect(
+         testButton,
+         &QAbstractButton::clicked,
+         self_,
+         [this, soundFileEdit]()
+         { mediaManager_->Play(soundFileEdit->text().toStdString()); });
+
+      // Wire up stop button
+      QObject::connect(stopButton,
+                       &QAbstractButton::clicked,
+                       self_,
+                       [this]() { mediaManager_->Stop(); });
+   }
+
+   // Add header label for tornado severity overrides
+   QLabel* tornadoSeverityHeader =
+      new QLabel(QString::fromStdString("Tornado Severity Overrides"), self_);
+   QFont severityHeaderFont = tornadoSeverityHeader->font();
+   severityHeaderFont.setBold(true);
+   tornadoSeverityHeader->setFont(severityHeaderFont);
+   alertAudioLayout->addWidget(
+      tornadoSeverityHeader, alertAudioLayout->rowCount(), 0, 1, -1);
+
+   // Helper to add a row: label, QLineEdit, file select [...], play, stop,
+   // reset
+   struct TornadoRowDef
+   {
+      std::string                               label_;
+      settings::SettingsInterface<std::string>& interface_;
+      settings::SettingsVariable<std::string>& (
+         settings::AudioSettings::*getter_)() const;
+   };
+
+   std::array<TornadoRowDef, 4> rowDefs = {{
+      {"Base (Radar Indicated)",
+       tornadoBaseAudioSoundFile_,
+       &settings::AudioSettings::tornado_base_sound_file},
+      {"Considerable",
+       tornadoConsiderableAudioSoundFile_,
+       &settings::AudioSettings::tornado_considerable_sound_file},
+      {"Catastrophic",
+       tornadoCatastrophicAudioSoundFile_,
+       &settings::AudioSettings::tornado_catastrophic_sound_file},
+      {"Observed (Confirmed)",
+       tornadoObservedAudioSoundFile_,
+       &settings::AudioSettings::tornado_observed_sound_file},
+   }};
+
+   for (auto& rowDef : rowDefs)
+   {
+      int row = alertAudioLayout->rowCount();
+
+      // Column 0: Label describing the severity level
+      QLabel* severityLabel =
+         new QLabel(QString::fromStdString(rowDef.label_), self_);
+
+      // Columns 1-2: Sound file path line edit
+      QLineEdit* soundFileEdit = new QLineEdit(self_);
+      soundFileEdit->setPlaceholderText(
+         QString::fromStdString("Use global default sound"));
+
+      // Create settings interface
+      auto& soundInterface = rowDef.interface_;
+      settings_.push_back(&soundInterface);
+      soundInterface.SetSettingsVariable((audioSettings.*(rowDef.getter_))());
+      soundInterface.SetEditWidget(soundFileEdit);
+      soundInterface.EnableTrimming();
+
+      // Column 3: File select button
+      QToolButton* selectButton = new QToolButton(self_);
+      selectButton->setText("...");
+
+      // Column 4: Test button
+      QToolButton* testButton = new QToolButton(self_);
+      testButton->setIcon(QIcon(":/res/icons/font-awesome-6/play-solid.svg"));
+
+      // Column 5: Stop button
+      QToolButton* stopButton = new QToolButton(self_);
+      stopButton->setIcon(QIcon(":/res/icons/font-awesome-6/stop-solid.svg"));
+
+      // Column 6: Reset button
+      QToolButton* resetButton = new QToolButton(self_);
+      resetButton->setIcon(
+         QIcon(":/res/icons/font-awesome-6/rotate-left-solid.svg"));
+      soundInterface.SetResetButton(resetButton);
+
+      // Add widgets to grid
+      alertAudioLayout->addWidget(severityLabel, row, 0);
+      alertAudioLayout->addWidget(soundFileEdit, row, 1, 1, 2);
+      alertAudioLayout->addWidget(selectButton, row, 3);
+      alertAudioLayout->addWidget(testButton, row, 4);
+      alertAudioLayout->addWidget(stopButton, row, 5);
+      alertAudioLayout->addWidget(resetButton, row, 6);
+
+      // Wire up select button — file dialog
+      QObject::connect(
+         selectButton,
+         &QAbstractButton::clicked,
+         self_,
+         [this, soundFileEdit]()
+         {
+            static const std::string audioFilter =
+               "Audio Files (*.3ga *.669 *.a52 *.aac *.ac3 *.adt *.adts "
+               "*.aif *.aifc *.aiff *.amb *.amr *.aob *.ape *.au *.awb "
+               "*.caf *.dts *.flac *.it *.kar *.m4a *.m4b *.m4p *.m5p "
+               "*.mid *.mka *.mlp *.mod *.mpa *.mp1 *.mp2 *.mp3 *.mpc "
+               "*.mpga *.mus *.oga *.ogg *.oma *.opus *.qcp *.ra *.rmi "
+               "*.s3m *.sid *.spx *.tak *.thd *.tta *.voc *.vqf *.w64 "
+               "*.wav *.wma *.wv *.xa *.xm)";
+            static const std::string allFilter = "All Files (*)";
+
+            QFileDialog* dialog = new QFileDialog(self_);
+            dialog->setFileMode(QFileDialog::ExistingFile);
+            dialog->setNameFilters({QObject::tr(audioFilter.c_str()),
+                                    QObject::tr(allFilter.c_str())});
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+            QObject::connect(dialog,
+                             &QFileDialog::fileSelected,
+                             self_,
+                             [soundFileEdit](const QString& file)
+                             {
+                                QString path = QDir::toNativeSeparators(file);
+                                soundFileEdit->setText(path);
+
+                                // setText does not emit the textEdited signal
+                                Q_EMIT soundFileEdit->textEdited(path);
+                             });
+
+            dialog->open();
+         });
+
+      // Wire up test button
       QObject::connect(
          testButton,
          &QAbstractButton::clicked,

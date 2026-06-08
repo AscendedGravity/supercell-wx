@@ -213,8 +213,41 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
                        awips::PVtec::GetActionCode(vtec.pVtec_.action()),
                        vtec.pVtec_.event_tracking_number());
 
-         std::string soundFile =
-            audioSettings.alert_sound_file(phenomenon).GetValue();
+         std::string soundFile;
+
+         // For tornado warnings, check for sub-category or observed overrides
+         if (phenomenon == awips::Phenomenon::Tornado)
+         {
+            // Priority: observed > threat category > per-phenomenon > global
+            if (segment->observed_)
+            {
+               soundFile =
+                  audioSettings.tornado_observed_sound_file().GetValue();
+            }
+
+            if (soundFile.empty() &&
+                segment->threatCategory_ != awips::ibw::ThreatCategory::Base)
+            {
+               switch (segment->threatCategory_)
+               {
+               case awips::ibw::ThreatCategory::Considerable:
+                  soundFile =
+                     audioSettings.tornado_considerable_sound_file().GetValue();
+                  break;
+               case awips::ibw::ThreatCategory::Catastrophic:
+                  soundFile =
+                     audioSettings.tornado_catastrophic_sound_file().GetValue();
+                  break;
+               default:
+                  break;
+               }
+            }
+         }
+
+         if (soundFile.empty())
+         {
+            soundFile = audioSettings.alert_sound_file(phenomenon).GetValue();
+         }
          if (soundFile.empty())
          {
             soundFile = audioSettings.alert_sound_file().GetValue();

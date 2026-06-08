@@ -34,6 +34,13 @@ public:
    alert_enabled(awips::Phenomenon phenomenon) const;
    [[nodiscard]] SettingsVariable<std::string>&
    alert_sound_file(awips::Phenomenon phenomenon) const;
+   [[nodiscard]] SettingsVariable<std::string>& tornado_base_sound_file() const;
+   [[nodiscard]] SettingsVariable<std::string>&
+   tornado_considerable_sound_file() const;
+   [[nodiscard]] SettingsVariable<std::string>&
+   tornado_catastrophic_sound_file() const;
+   [[nodiscard]] SettingsVariable<std::string>&
+   tornado_observed_sound_file() const;
    [[nodiscard]] SettingsVariable<bool>&         ignore_missing_codecs() const;
    [[nodiscard]] SettingsVariable<std::int64_t>& master_volume() const;
 
