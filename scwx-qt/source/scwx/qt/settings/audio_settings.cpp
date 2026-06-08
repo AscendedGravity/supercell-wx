@@ -73,25 +73,36 @@ public:
 
       auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
       alertEnabled_.reserve(alertAudioPhenomena.size() + 1);
+      alertSoundFiles_.reserve(alertAudioPhenomena.size() + 1);
 
       for (auto& phenomenon : alertAudioPhenomena)
       {
          std::string phenomenonCode = awips::GetPhenomenonCode(phenomenon);
-         std::string name           = fmt::format("{}_enabled", phenomenonCode);
+         std::string enabledName    = fmt::format("{}_enabled", phenomenonCode);
+         std::string soundName = fmt::format("{}_sound_file", phenomenonCode);
 
-         auto result =
-            alertEnabled_.emplace(phenomenon, SettingsVariable<bool> {name});
+         auto enabledResult = alertEnabled_.emplace(
+            phenomenon, SettingsVariable<bool> {enabledName});
 
-         SettingsVariable<bool>& variable = result.first->second;
+         SettingsVariable<bool>& enabledVariable = enabledResult.first->second;
+         enabledVariable.SetDefault(kDefaultAlertEnabled_);
+         variables_.push_back(&enabledVariable);
 
-         variable.SetDefault(kDefaultAlertEnabled_);
+         auto soundResult = alertSoundFiles_.emplace(
+            phenomenon, SettingsVariable<std::string> {soundName});
 
-         variables_.push_back(&variable);
+         SettingsVariable<std::string>& soundVariable =
+            soundResult.first->second;
+         soundVariable.SetDefault("");
+         variables_.push_back(&soundVariable);
       }
 
       // Create a default disabled alert, not stored in the settings file
       alertEnabled_.emplace(kDefaultPhenomenon_,
                             SettingsVariable<bool> {"alert_disabled"});
+      alertSoundFiles_.emplace(
+         kDefaultPhenomenon_,
+         SettingsVariable<std::string> {"alert_sound_disabled"});
    }
 
    ~Impl()                       = default;
@@ -113,6 +124,8 @@ public:
 
    std::unordered_map<awips::Phenomenon, SettingsVariable<bool>>
                                       alertEnabled_ {};
+   std::unordered_map<awips::Phenomenon, SettingsVariable<std::string>>
+                                      alertSoundFiles_ {};
    std::vector<SettingsVariableBase*> variables_ {};
 };
 
@@ -190,6 +203,19 @@ AudioSettings::alert_enabled(awips::Phenomenon phenomenon) const
    return alert->second;
 }
 
+SettingsVariable<std::string>&
+AudioSettings::alert_sound_file(awips::Phenomenon phenomenon) const
+{
+   auto alert = p->alertSoundFiles_.find(phenomenon);
+   if (alert != p->alertSoundFiles_.cend())
+   {
+      return alert->second;
+   }
+
+   // Fallback for unknown phenomenon
+   return p->alertSoundFile_;
+}
+
 SettingsVariable<bool>& AudioSettings::ignore_missing_codecs() const
 {
    return p->ignoreMissingCodecs_;
@@ -217,6 +243,7 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
            lhs.p->alertWFO_ == rhs.p->alertWFO_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_ &&
+           lhs.p->alertSoundFiles_ == rhs.p->alertSoundFiles_ &&
            lhs.p->ignoreMissingCodecs_ == rhs.p->ignoreMissingCodecs_ &&
            lhs.p->masterVolume_ == rhs.p->masterVolume_);
 }

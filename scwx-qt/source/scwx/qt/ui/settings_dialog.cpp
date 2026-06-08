@@ -46,6 +46,8 @@
 #include <QFontDatabase>
 #include <QFontDialog>
 #include <QGeoPositionInfo>
+#include <QIcon>
+#include <QLabel>
 #include <QPushButton>
 #include <QStandardItemModel>
 #include <QToolButton>
@@ -304,6 +306,9 @@ public:
 
    std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
       alertAudioEnabled_ {};
+   std::unordered_map<awips::Phenomenon,
+                      settings::SettingsInterface<std::string>>
+      alertAudioSoundFiles_ {};
 
    settings::SettingsInterface<std::int64_t> masterVolume_ {};
 
@@ -1315,29 +1320,128 @@ void SettingsDialogImpl::SetupAudioTab()
    auto  alertAudioLayout =
       static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
 
+   // Add header label for per-phenomenon sound overrides
+   QLabel* perPhenomenonHeader = new QLabel(
+      QString::fromStdString("Per-Phenomenon Sound Overrides"), self_);
+   QFont headerFont = perPhenomenonHeader->font();
+   headerFont.setBold(true);
+   perPhenomenonHeader->setFont(headerFont);
+   alertAudioLayout->addWidget(
+      perPhenomenonHeader, alertAudioLayout->rowCount(), 0, 1, -1);
+
    alertAudioEnabled_.reserve(alertAudioPhenomena.size());
+   alertAudioSoundFiles_.reserve(alertAudioPhenomena.size());
 
    for (const auto& phenomenon : alertAudioPhenomena)
    {
+      int row = alertAudioLayout->rowCount();
+
+      // Column 0: Checkbox for enable/disable
       QCheckBox* alertAudioCheckbox = new QCheckBox(self_);
       alertAudioCheckbox->setText(
          QString::fromStdString(awips::GetPhenomenonText(phenomenon)));
 
-      static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout())
-         ->addWidget(
-            alertAudioCheckbox, alertAudioLayout->rowCount(), 0, 1, -1);
-
-      // Create settings interface
-      auto result = alertAudioEnabled_.emplace(
+      // Create settings interface for enabled toggle
+      auto enabledResult = alertAudioEnabled_.emplace(
          phenomenon, settings::SettingsInterface<bool> {});
-      auto& alertAudioEnabled = result.first->second;
-
-      // Add to settings list
+      auto& alertAudioEnabled = enabledResult.first->second;
       settings_.push_back(&alertAudioEnabled);
-
       alertAudioEnabled.SetSettingsVariable(
          audioSettings.alert_enabled(phenomenon));
       alertAudioEnabled.SetEditWidget(alertAudioCheckbox);
+
+      // Columns 1-2: Sound file path line edit
+      QLineEdit* soundFileEdit = new QLineEdit(self_);
+      soundFileEdit->setPlaceholderText(
+         QString::fromStdString("Use global default sound"));
+
+      // Create settings interface for per-phenomenon sound file
+      auto soundResult = alertAudioSoundFiles_.emplace(
+         phenomenon, settings::SettingsInterface<std::string> {});
+      auto& alertAudioSoundFile = soundResult.first->second;
+      settings_.push_back(&alertAudioSoundFile);
+      alertAudioSoundFile.SetSettingsVariable(
+         audioSettings.alert_sound_file(phenomenon));
+      alertAudioSoundFile.SetEditWidget(soundFileEdit);
+      alertAudioSoundFile.EnableTrimming();
+
+      // Column 3: File select button
+      QToolButton* selectButton = new QToolButton(self_);
+      selectButton->setText("...");
+
+      // Column 4: Test button
+      QToolButton* testButton = new QToolButton(self_);
+      testButton->setIcon(QIcon(":/res/icons/font-awesome-6/play-solid.svg"));
+
+      // Column 5: Stop button
+      QToolButton* stopButton = new QToolButton(self_);
+      stopButton->setIcon(QIcon(":/res/icons/font-awesome-6/stop-solid.svg"));
+
+      // Column 6: Reset button (clears override → uses global default)
+      QToolButton* resetButton = new QToolButton(self_);
+      resetButton->setIcon(
+         QIcon(":/res/icons/font-awesome-6/rotate-left-solid.svg"));
+      alertAudioSoundFile.SetResetButton(resetButton);
+
+      // Add widgets to grid
+      alertAudioLayout->addWidget(alertAudioCheckbox, row, 0);
+      alertAudioLayout->addWidget(soundFileEdit, row, 1, 1, 2);
+      alertAudioLayout->addWidget(selectButton, row, 3);
+      alertAudioLayout->addWidget(testButton, row, 4);
+      alertAudioLayout->addWidget(stopButton, row, 5);
+      alertAudioLayout->addWidget(resetButton, row, 6);
+
+      // Wire up select button — file dialog
+      QObject::connect(
+         selectButton,
+         &QAbstractButton::clicked,
+         self_,
+         [this, soundFileEdit]()
+         {
+            static const std::string audioFilter =
+               "Audio Files (*.3ga *.669 *.a52 *.aac *.ac3 *.adt *.adts "
+               "*.aif *.aifc *.aiff *.amb *.amr *.aob *.ape *.au *.awb "
+               "*.caf *.dts *.flac *.it *.kar *.m4a *.m4b *.m4p *.m5p "
+               "*.mid *.mka *.mlp *.mod *.mpa *.mp1 *.mp2 *.mp3 *.mpc "
+               "*.mpga *.mus *.oga *.ogg *.oma *.opus *.qcp *.ra *.rmi "
+               "*.s3m *.sid *.spx *.tak *.thd *.tta *.voc *.vqf *.w64 "
+               "*.wav *.wma *.wv *.xa *.xm)";
+            static const std::string allFilter = "All Files (*)";
+
+            QFileDialog* dialog = new QFileDialog(self_);
+            dialog->setFileMode(QFileDialog::ExistingFile);
+            dialog->setNameFilters({QObject::tr(audioFilter.c_str()),
+                                    QObject::tr(allFilter.c_str())});
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+            QObject::connect(dialog,
+                             &QFileDialog::fileSelected,
+                             self_,
+                             [soundFileEdit](const QString& file)
+                             {
+                                QString path = QDir::toNativeSeparators(file);
+                                soundFileEdit->setText(path);
+
+                                // setText does not emit the textEdited signal
+                                Q_EMIT soundFileEdit->textEdited(path);
+                             });
+
+            dialog->open();
+         });
+
+      // Wire up test button — plays this row's sound file
+      QObject::connect(
+         testButton,
+         &QAbstractButton::clicked,
+         self_,
+         [this, soundFileEdit]()
+         { mediaManager_->Play(soundFileEdit->text().toStdString()); });
+
+      // Wire up stop button
+      QObject::connect(stopButton,
+                       &QAbstractButton::clicked,
+                       self_,
+                       [this]() { mediaManager_->Stop(); });
    }
 
    QObject::connect(

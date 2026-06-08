@@ -213,7 +213,13 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
                        awips::PVtec::GetActionCode(vtec.pVtec_.action()),
                        vtec.pVtec_.event_tracking_number());
 
-         mediaManager_->Play(audioSettings.alert_sound_file().GetValue());
+         std::string soundFile =
+            audioSettings.alert_sound_file(phenomenon).GetValue();
+         if (soundFile.empty())
+         {
+            soundFile = audioSettings.alert_sound_file().GetValue();
+         }
+         mediaManager_->Play(soundFile);
       }
    }
 }
