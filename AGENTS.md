@@ -7,9 +7,15 @@ Supercell Wx is a cross-platform C++20/Qt6 application for visualizing live and 
 ### Two-Library Structure
 - **wxdata/** - Core radar data processing library (platform-independent, no Qt)
   - Parses NEXRAD Level 2/3 files ([wxdata/include/scwx/wsr88d/](wxdata/include/scwx/wsr88d/))
-  - Network providers for AWS/NWS data ([wxdata/include/scwx/provider/](wxdata/include/scwx/provider/))
+  - Network providers for AWS/NWS data, Blitzortung lightning, GFS model data, and IEM API ([wxdata/include/scwx/provider/](wxdata/include/scwx/provider/))
   - AWIPS message parsing ([wxdata/include/scwx/awips/](wxdata/include/scwx/awips/))
   - GR placefile support ([wxdata/include/scwx/gr/](wxdata/include/scwx/gr/))
+  - GRIB2 data parsing ([wxdata/include/scwx/grib2/](wxdata/include/scwx/grib2/))
+  - Sounding data ([wxdata/include/scwx/sounding/](wxdata/include/scwx/sounding/))
+  - SPC outlook/mesoscale discussion data ([wxdata/include/scwx/spc/](wxdata/include/scwx/spc/))
+  - Common types and utilities ([wxdata/include/scwx/common/](wxdata/include/scwx/common/), [wxdata/include/scwx/types/](wxdata/include/scwx/types/))
+  - Network utilities ([wxdata/include/scwx/network/](wxdata/include/scwx/network/))
+  - Zip utilities ([wxdata/include/scwx/zip/](wxdata/include/scwx/zip/))
   - Uses shared Conan dependencies but NO Qt
 
 - **scwx-qt/** - Qt GUI application layer
@@ -18,16 +24,35 @@ Supercell Wx is a cross-platform C++20/Qt6 application for visualizing live and 
   - Map rendering with MapLibre GL ([scwx-qt/source/scwx/qt/map/](scwx-qt/source/scwx/qt/map/))
   - OpenGL drawing primitives ([scwx-qt/source/scwx/qt/gl/](scwx-qt/source/scwx/qt/gl/))
   - Product views connect data to visualization ([scwx-qt/source/scwx/qt/view/](scwx-qt/source/scwx/qt/view/))
+  - Python build helpers for code generation ([scwx-qt/tools/](scwx-qt/tools/))
+  - Qt translation files ([scwx-qt/ts/](scwx-qt/ts/))
 
 **Critical:** Keep Qt code isolated to scwx-qt. Never add Qt dependencies to wxdata.
 
 ### Manager Pattern
-Manager classes in [scwx-qt/source/scwx/qt/manager/](scwx-qt/source/scwx/qt/manager/) are singletons that manage global application concerns:
-- `RadarProductManager` - loads/caches radar products, emits Qt signals for data updates
+Manager classes in [scwx-qt/source/scwx/qt/manager/](scwx-qt/source/scwx/qt/manager/) are singletons that manage global application concerns. Key managers include:
+- `RadarProductManager` / `RadarProductManagerNotifier` - loads/caches radar products, emits Qt signals for data updates
 - `SettingsManager` - persistent settings via QSettings
 - `AlertManager` - weather alert processing
 - `PlacefileManager` - external placefile integration
 - `TimelineManager` - time-based product selection
+- `BlitzortungManager` - lightning data processing
+- `DownloadManager` - download queue management
+- `FontManager` - font loading and caching
+- `GfsManager` - GFS model data
+- `HotkeyManager` - keyboard shortcut configuration
+- `LogManager` - application logging
+- `MarkerManager` - map marker state
+- `MediaManager` - media capture/export
+- `PositionManager` - geographic position tracking
+- `RadarSiteStatusManager` - radar site operational status
+- `ResourceManager` - bundled resource loading
+- `SpcMdManager` / `SpcOutlookManager` - SPC mesoscale discussion/outlook data
+- `TaskManager` - background task lifecycle
+- `TextEventManager` - text-based weather event parsing
+- `ThreadManager` - Boost thread pool management
+- `UpdateManager` - application update checks
+- `WisManager` - NWS WFO alert state
 
 Managers communicate via Qt signals/slots. When data flows from wxdata → scwx-qt, it typically goes through a manager.
 
@@ -101,7 +126,7 @@ On Windows, use the provided build script to ensure the MSVC environment is prop
 **Key Conan profiles:** See [tools/conan/profiles/](tools/conan/profiles/)
 - Windows: `scwx-windows_vs2026_x64`, `scwx-windows_vs2022_x64`
 - Linux: `scwx-linux_gcc-[11-16]`, `scwx-linux_clang-[17-22]`
-- macOS: `scwx-macos_clang-[18-22]`
+- macOS: `scwx-macos_clang-18` (x86_64), `scwx-macos_clang-[18-22]_armv8`
 
 **CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-vs2026-x64-ninja-release` encapsulate toolchain/profile selection.
 
@@ -113,11 +138,22 @@ Per [tools/scwx_config.cmake](tools/scwx_config.cmake), binaries go to:
 - `build/<preset>/<BuildType>/bin/supercell-wx[.exe]`
 - `build/<preset>/<BuildType>/lib/` for shared libraries
 
+The current project version is **0.6.0** (set in [CMakeLists.txt](CMakeLists.txt)).
+
+## Squad Framework
+
+This project uses **Squad**, an AI team framework defined in `.squad/`. Before starting work:
+1. Read `.squad/team.md` for the team roster, member roles, and capability profile.
+2. Read `.squad/routing.md` for work routing rules.
+3. If assigned a `squad:{member}` label, read that member's charter (`.squad/agents/{member}/charter.md`).
+
+See `.github/copilot-instructions.md` for detailed Squad workflow instructions.
+
 ## External Dependencies
 
 ### Vendored vs Conan
-- **Conan-managed** ([conanfile.py](conanfile.py)): Boost, Qt (via system), GEOS, libcurl, OpenSSL, spdlog, SQLite, etc.
-- **Git submodules** ([external/](external/)): MapLibre Native Qt, ImGui, stb, units library
+- **Conan-managed** ([conanfile.py](conanfile.py)): Boost, cpr, fontconfig, geographiclib, GEOS, glm, GoogleTest, libcurl, libjpeg, libpng, libtiff, libxml2, libzip, OpenSSL, range-v3, re2, spdlog, SQLite3, vulkan-loader, zlib, and more (conditional: onetbb, opengl, glu on Linux)
+- **Git submodules** ([external/](external/)): aws-sdk-cpp, cmake-conan, date, glad, hsluv-c, imgui, imgui-backend-qt, maplibre-native, maplibre-native-qt, qt6ct, stb, textflowcpp, units
   - Use submodules when heavy customization or unreleased versions needed
   - MapLibre is vendored because Qt bindings require custom build
 
@@ -203,13 +239,19 @@ Modify [conanfile.py](conanfile.py) `requires` tuple, then re-run Conan install.
 
 ### Visual Studio Code Setup
 Recommended extensions: C/C++ Extension Pack, clangd, CMake Tools, Python. 
-**Windows-specific:** Launch from *x64 Native Tools Command Prompt for VS 2022* or configure shortcut (see [developer-setup.rst](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html)).
+**Windows-specific:** Launch from *x64 Native Tools Command Prompt for VS 2022/2026* or configure shortcut (see [developer-setup.rst](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html)).
 
 ### Address Sanitizer
-Enable with `-DSCWX_ADDRESS_SANITIZER=ON` or use presets like `linux-gcc-debug-asan`. Useful for memory leak/corruption detection.
+Enable with `-DSCWX_ADDRESS_SANITIZER=ON` or use presets like `linux-gcc14-debug-asan`. Useful for memory leak/corruption detection.
 
 ### CI Reference
-See [.github/workflows/ci.yml](.github/workflows/ci.yml) for complete build matrix. Mirrors setup scripts but includes AppImage packaging, artifact collection.
+See [.github/workflows/ci.yml](.github/workflows/ci.yml) for the main build matrix (Windows, Linux, macOS with various compiler/arch combos). Additional workflows:
+- `.github/workflows/clang-format-check.yml` — Formatting checks
+- `.github/workflows/clang-tidy-comments.yml` — Static analysis comments
+- `.github/workflows/clang-tidy-review.yml` — Clang-tidy review on PRs
+- `.github/workflows/sign-windows-packages.yml` — Windows code signing
+
+CI mirrors setup scripts but includes AppImage packaging, artifact collection.
 
 ## Resources
 - **Documentation:** https://supercell-wx.readthedocs.io/
