@@ -2,6 +2,7 @@
 #include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <vector>
 
 #include <boost/signals2/connection.hpp>
@@ -53,6 +54,24 @@ public:
 
             SetVolume(
                settings::AudioSettings::Instance().master_volume().GetValue());
+
+            // Pre-load the default alert sound so the decoder is hot and ready
+            // before any alert fires, eliminating first-play decode latency
+            // under CPU load.
+            const std::string defaultSoundFile =
+               settings::AudioSettings::Instance()
+                  .alert_sound_file()
+                  .GetValue();
+            if (!defaultSoundFile.empty())
+            {
+               QUrl url = defaultSoundFile.starts_with(':') ?
+                             QUrl(QString("qrc%1").arg(
+                                QString::fromStdString(defaultSoundFile))) :
+                             QUrl::fromLocalFile(
+                                QString::fromStdString(defaultSoundFile));
+
+               mediaPlayer_->setSource(url);
+            }
          });
    }
 
@@ -81,6 +100,7 @@ public:
    QMediaDevices*           mediaDevices_ {nullptr};
    QMediaPlayer*            mediaPlayer_ {nullptr};
    QAudioOutput*            audioOutput_ {nullptr};
+   std::atomic<bool>        playing_ {false};
 };
 
 MediaManager::MediaManager() : p(std::make_unique<Impl>()) {}
@@ -117,6 +137,11 @@ void MediaManager::Impl::ConnectSignals()
                                       static_cast<int>(error),
                                       errorString.toStdString());
                     });
+
+   QObject::connect(mediaPlayer_,
+                    &QMediaPlayer::playingChanged,
+                    mediaParent_.get(),
+                    [this](bool playing) { playing_ = playing; });
 
    const settings::AudioSettings& audioSettings =
       settings::AudioSettings::Instance();
@@ -159,23 +184,38 @@ void MediaManager::Play(const std::string& mediaPath)
       return;
    }
 
-   if (mediaPath.starts_with(':'))
+   // If already playing, skip to avoid queuing events on a busy media thread.
+   // The atomic guard prevents redundant invokes from accumulating under CPU
+   // pressure, which would otherwise trigger stop/restart glitching.
+   if (p->playing_)
    {
-      QMetaObject::invokeMethod(
-         p->mediaPlayer_,
-         &QMediaPlayer::setSource,
-         QUrl(QString("qrc%1").arg(QString::fromStdString(mediaPath))));
-   }
-   else
-   {
-      QMetaObject::invokeMethod(
-         p->mediaPlayer_,
-         &QMediaPlayer::setSource,
-         QUrl::fromLocalFile(QString::fromStdString(mediaPath)));
+      logger_->debug("Already playing, skipping redundant play request");
+      return;
    }
 
-   QMetaObject::invokeMethod(p->mediaPlayer_, &QMediaPlayer::setPosition, 0);
-   QMetaObject::invokeMethod(p->mediaPlayer_, &QMediaPlayer::play);
+   // Coalesce all media operations into a single invoke to reduce event queue
+   // pressure under heavy CPU load, and skip restart if already playing the
+   // same source to avoid decode glitching.
+   QMetaObject::invokeMethod(
+      p->mediaParent_.get(),
+      [this, mediaPath]()
+      {
+         QUrl url =
+            mediaPath.starts_with(':') ?
+               QUrl(QString("qrc%1").arg(QString::fromStdString(mediaPath))) :
+               QUrl::fromLocalFile(QString::fromStdString(mediaPath));
+
+         if (p->mediaPlayer_->source() == url &&
+             p->mediaPlayer_->playbackState() == QMediaPlayer::PlayingState)
+         {
+            return;
+         }
+
+         p->mediaPlayer_->stop();
+         p->mediaPlayer_->setSource(url);
+         p->mediaPlayer_->setPosition(0);
+         p->mediaPlayer_->play();
+      });
 }
 
 void MediaManager::Stop()

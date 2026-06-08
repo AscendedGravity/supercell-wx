@@ -252,6 +252,7 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
             soundFile = audioSettings.alert_sound_file().GetValue();
          }
          mediaManager_->Play(soundFile);
+         break;
       }
    }
 }
