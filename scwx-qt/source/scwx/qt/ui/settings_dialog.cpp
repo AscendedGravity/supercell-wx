@@ -169,7 +169,6 @@ public:
           &alertAudioRadius_,
           &alertAudioCounty_,
           &alertAudioWFO_,
-          &tornadoBaseAudioSoundFile_,
           &tornadoConsiderableAudioSoundFile_,
           &tornadoCatastrophicAudioSoundFile_,
           &tornadoObservedAudioSoundFile_,
@@ -314,7 +313,6 @@ public:
                       settings::SettingsInterface<std::string>>
       alertAudioSoundFiles_ {};
 
-   settings::SettingsInterface<std::string> tornadoBaseAudioSoundFile_ {};
    settings::SettingsInterface<std::string>
       tornadoConsiderableAudioSoundFile_ {};
    settings::SettingsInterface<std::string>
@@ -1474,19 +1472,16 @@ void SettingsDialogImpl::SetupAudioTab()
          settings::AudioSettings::*getter_)() const;
    };
 
-   std::array<TornadoRowDef, 4> rowDefs = {{
-      {"Base (Radar Indicated)",
-       tornadoBaseAudioSoundFile_,
-       &settings::AudioSettings::tornado_base_sound_file},
-      {"Considerable",
-       tornadoConsiderableAudioSoundFile_,
-       &settings::AudioSettings::tornado_considerable_sound_file},
-      {"Catastrophic",
-       tornadoCatastrophicAudioSoundFile_,
-       &settings::AudioSettings::tornado_catastrophic_sound_file},
-      {"Observed (Confirmed)",
+   std::array<TornadoRowDef, 3> rowDefs = {{
+      {"Observed",
        tornadoObservedAudioSoundFile_,
        &settings::AudioSettings::tornado_observed_sound_file},
+      {"PDS Warning",
+       tornadoConsiderableAudioSoundFile_,
+       &settings::AudioSettings::tornado_considerable_sound_file},
+      {"Emergency",
+       tornadoCatastrophicAudioSoundFile_,
+       &settings::AudioSettings::tornado_catastrophic_sound_file},
    }};
 
    for (auto& rowDef : rowDefs)

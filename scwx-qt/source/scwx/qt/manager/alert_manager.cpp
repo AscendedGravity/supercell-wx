@@ -218,15 +218,9 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
          // For tornado warnings, check for sub-category or observed overrides
          if (phenomenon == awips::Phenomenon::Tornado)
          {
-            // Priority: observed > threat category > per-phenomenon > global
-            if (segment->observed_)
-            {
-               soundFile =
-                  audioSettings.tornado_observed_sound_file().GetValue();
-            }
-
-            if (soundFile.empty() &&
-                segment->threatCategory_ != awips::ibw::ThreatCategory::Base)
+            // Priority: threat category > observed (Base only) > per-phenomenon
+            // > global
+            if (segment->threatCategory_ != awips::ibw::ThreatCategory::Base)
             {
                switch (segment->threatCategory_)
                {
@@ -241,6 +235,11 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
                default:
                   break;
                }
+            }
+            else if (segment->observed_)
+            {
+               soundFile =
+                  audioSettings.tornado_observed_sound_file().GetValue();
             }
          }
 
