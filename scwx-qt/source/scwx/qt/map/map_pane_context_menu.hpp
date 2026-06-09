@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/common/geographic.hpp>
 #include <scwx/common/products.hpp>
 
 #include <QMenu>
@@ -39,6 +40,10 @@ struct MapPaneContextMenuConfig
    const std::vector<bool>*       popped_out  = nullptr;
    MapWidget*                     current_map = nullptr;
 
+   QString text_sounding;
+   /// Coordinate of the right-click point, used for the sounding action.
+   common::Coordinate sounding_coordinate {};
+
    std::function<void(std::size_t)> on_popout;
    std::function<void(std::size_t)> on_dock;
    /// Invoked with (map_index, map, linked) when "Link view" is toggled.
@@ -52,6 +57,9 @@ struct MapPaneContextMenuConfig
    /// is checkable; otherwise Draw only opens on click.
    std::function<bool(std::size_t map_index)>            is_draw_toolbar_open;
    std::function<void(std::size_t map_index, bool open)> set_draw_toolbar_open;
+   /// Invoked with the right-click coordinate when "Generate Sounding" is
+   /// selected. Requires nonempty \p text_sounding.
+   std::function<void(common::Coordinate)> on_sounding_requested;
 };
 
 void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,

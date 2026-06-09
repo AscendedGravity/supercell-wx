@@ -39,7 +39,7 @@ Manager classes in [scwx-qt/source/scwx/qt/manager/](scwx-qt/source/scwx/qt/mana
 - `BlitzortungManager` - lightning data processing
 - `DownloadManager` - download queue management
 - `FontManager` - font loading and caching
-- `GfsManager` - GFS model data
+- `SoundingManager` - Sounding generation via rustwx sounding_plot binary (replaces GfsManager)
 - `HotkeyManager` - keyboard shortcut configuration
 - `LogManager` - application logging
 - `MarkerManager` - map marker state
