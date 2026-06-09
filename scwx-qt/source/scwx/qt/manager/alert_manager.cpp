@@ -207,8 +207,17 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
 
       if (activeAtLocation)
       {
+         // Always skip audio for archive-loaded events that began more than
+         // 2 minutes ago (initial bulk load), regardless of the new-only
+         // toggle.
+         if (scwx::util::time::now() - vtec.pVtec_.event_begin() >
+             std::chrono::minutes {2})
+         {
+            continue;
+         }
+
          // If "Only Play When New" is enabled, skip sound for updates to
-         // existing events (action is not New)
+         // existing events (action is not New).
          if (audioSettings.alert_only_new().GetValue() &&
              action != awips::PVtec::Action::New)
          {
