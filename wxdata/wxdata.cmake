@@ -73,8 +73,6 @@ set(SRC_SPC source/scwx/spc/spc_types.cpp
              source/scwx/spc/geojson_parser.cpp
              source/scwx/spc/spc_outlook_provider.cpp
              source/scwx/spc/spc_md_provider.cpp)
-set(HDR_SOUNDING include/scwx/sounding/sounding_data.hpp)
-set(SRC_SOUNDING source/scwx/sounding/sounding_data.cpp)
 set(SRC_GR source/scwx/gr/color.cpp
            source/scwx/gr/placefile.cpp)
 set(HDR_NETWORK include/scwx/network/cpr.hpp
@@ -94,7 +92,6 @@ set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                   include/scwx/provider/nexrad_data_provider.hpp
                   include/scwx/provider/nexrad_data_provider_factory.hpp
                   include/scwx/provider/nws_api_provider.hpp
-                   include/scwx/provider/gfs_provider.hpp
                    include/scwx/provider/warnings_provider.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                   source/scwx/provider/aws_level2_chunks_data_provider.cpp
@@ -104,7 +101,6 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                   source/scwx/provider/iem_api_provider.cpp
                   source/scwx/provider/nexrad_data_provider.cpp
                    source/scwx/provider/nexrad_data_provider_factory.cpp
-                   source/scwx/provider/gfs_provider.cpp
                    source/scwx/provider/nws_api_provider.cpp
                   source/scwx/provider/warnings_provider.cpp)
 set(HDR_TYPES include/scwx/types/iem_types.hpp

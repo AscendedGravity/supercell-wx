@@ -54,7 +54,7 @@
 #include <scwx/qt/ui/marker_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
-#include <scwx/qt/ui/sounding_panel.hpp>
+#include <scwx/qt/ui/sounding_dialog.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
 #include <scwx/qt/ui/wis_details_dialog.hpp>
 #include <scwx/qt/ui/mesoscale_discussion_dialog.hpp>
@@ -383,8 +383,8 @@ public:
    QPointer<ui::MapAnnotationDockWidget> mapAnnotationDock_ {};
    ui::MesoscaleDiscussionDialog*    mesoscaleDiscussionDialog_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
-   ui::SoundingPanel*                soundingPanel_ {};
-   bool                              selectingSoundingPoint_ {false};
+   ui::SoundingDialog*                   soundingDialog_ {};
+   common::Coordinate                    lastMouseCoord_ {};
    ui::AboutDialog*                  aboutDialog_ {};
    ui::ExportSettingsDialog*         exportSettingsDialog_ {};
    ui::GpsInfoDialog*                gpsInfoDialog_ {};
@@ -519,10 +519,8 @@ MainWindow::MainWindow(QWidget* parent) :
    // Mesoscale Discussion Dialog (created once, shown on demand)
    p->mesoscaleDiscussionDialog_ = new ui::MesoscaleDiscussionDialog(this);
 
-   // Configure GFS Sounding Dock
-   p->soundingPanel_ = new ui::SoundingPanel(this);
-   addDockWidget(Qt::RightDockWidgetArea, p->soundingPanel_);
-   p->soundingPanel_->hide();
+   // Configure Sounding dialog
+   p->soundingDialog_ = new ui::SoundingDialog(this);
 
    p->mapAnnotationDock_ =
       new ui::MapAnnotationDockWidget(p->mainWindow_->ui->centralwidget);
@@ -555,40 +553,17 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
 
-   // Add GFS Sounding menu action
-   auto* soundingAction = ui->menuView->addAction(tr("GFS &Sounding"));
-   soundingAction->setCheckable(true);
-   soundingAction->setChecked(false);
+   // Add Sounding menu action
+   auto* soundingAction = ui->menuView->addAction(tr("&Sounding"));
    QObject::connect(soundingAction,
-                    &QAction::toggled,
+                    &QAction::triggered,
                     this,
-                    [this](bool checked)
-                    { p->soundingPanel_->setVisible(checked); });
-   QObject::connect(p->soundingPanel_,
-                    &QDockWidget::visibilityChanged,
-                    soundingAction,
-                    &QAction::setChecked);
-   QObject::connect(
-      p->soundingPanel_,
-      &QDockWidget::visibilityChanged,
-      this,
-      [this](bool visible)
-      {
-         QTimer::singleShot(
-            0,
-            this,
-            [this, visible]()
-            {
-               if (visible)
-               {
-                  setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
-               }
-               else
-               {
-                  setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
-               }
-            });
-      });
+                    [this]()
+                    {
+                       p->soundingDialog_->show();
+                       p->soundingDialog_->raise();
+                       p->soundingDialog_->activateWindow();
+                    });
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -3194,6 +3169,8 @@ void MainWindowImpl::ConnectMapSignals()
          this,
          [this](common::Coordinate coordinate)
          {
+            lastMouseCoord_ = coordinate;
+
             const QString latitude = QString::fromStdString(
                common::GetLatitudeString(coordinate.latitude_));
             const QString longitude = QString::fromStdString(
@@ -3251,23 +3228,6 @@ void MainWindowImpl::ConnectMapSignals()
          [this](std::optional<float>)
          { level2SettingsWidget_->UpdateSettings(activeMap_); },
          Qt::QueuedConnection);
-
-      connect(mapWidget,
-              &map::MapWidget::MapClicked,
-              this,
-              [this](common::Coordinate coordinate)
-              {
-                 if (!selectingSoundingPoint_)
-                 {
-                    return;
-                 }
-                 selectingSoundingPoint_ = false;
-                 activeMap_->setCursor(Qt::ArrowCursor);
-                 soundingPanel_->SetLocation(coordinate.latitude_,
-                                             coordinate.longitude_);
-                 soundingPanel_->show();
-                 soundingPanel_->raise();
-              });
    }
    UpdateMatchMapStyleFromPanesState(true);
 }
@@ -3808,15 +3768,6 @@ void MainWindowImpl::ConnectOtherSignals()
             UpdateMatchMapStyleFromPanesState(false);
          }));
 
-   // Connect sounding panel point selection
-   connect(soundingPanel_,
-           &ui::SoundingPanel::PointSelectionStarted,
-           this,
-           [this]()
-           {
-              selectingSoundingPoint_ = true;
-              activeMap_->setCursor(Qt::CrossCursor);
-           });
    connections_.emplace_back(
       generalSettings.grid_width().changed_signal().connect(
          [this](const auto& /*event*/)
@@ -4258,6 +4209,15 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
    {
       map::AppendMapPaneSpcOutlookContextMenu(
          m, [this](const char* s) { return mainWindow_->tr(s); });
+   };
+   cfg.text_sounding         = mainWindow_->tr("Generate &Sounding");
+   cfg.sounding_coordinate   = lastMouseCoord_;
+   cfg.on_sounding_requested = [this](common::Coordinate coord)
+   {
+      soundingDialog_->SetLocation(coord.latitude_, coord.longitude_);
+      soundingDialog_->show();
+      soundingDialog_->raise();
+      soundingDialog_->activateWindow();
    };
 
    map::RunMapPaneContextMenu(cfg, globalPos);

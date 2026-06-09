@@ -1,27 +1,28 @@
 #pragma once
 
-#include <scwx/sounding/sounding_data.hpp>
-
 #include <memory>
 
 #include <QDockWidget>
+#include <QString>
 
 class QComboBox;
 class QDoubleSpinBox;
+class QLabel;
 class QPushButton;
-class QSplitter;
-
-namespace scwx::qt::view
-{
-class SkewtWidget;
-class HodographWidget;
-} // namespace scwx::qt::view
+class QScrollArea;
 
 namespace scwx::qt::ui
 {
 
 class SoundingPanelImpl;
 
+/**
+ * @brief Floating dock widget for displaying rustwx sounding PNGs.
+ *
+ * Provides controls for selecting a location (lat/lon), model, cycle,
+ * and forecast hour. Fetches a sounding PNG via the rustwx sounding_plot
+ * binary and displays the result in a scrollable image viewer.
+ */
 class SoundingPanel : public QDockWidget
 {
    Q_OBJECT
@@ -37,16 +38,14 @@ public:
    void RequestSounding();
 
 public slots:
-   void
-   OnSoundingReady(const std::shared_ptr<sounding::SoundingData>& sounding);
-   void OnLoadError(const QString& message);
+   void OnSoundingImageReady(const QString& imagePath);
+   void OnSoundingError(const QString& message);
    void OnFetchClicked();
 
 signals:
    /**
-    * Emitted when the user clicks "Select Forecast Point" to pick a point
-    * from the map. The main window should connect this to the map's
-    * point-click handling logic.
+    * @brief Emitted when the user clicks "Select Point" to pick a location
+    *        from the map.
     */
    void PointSelectionStarted();
 

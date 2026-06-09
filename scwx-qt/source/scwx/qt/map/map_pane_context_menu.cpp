@@ -476,6 +476,31 @@ void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
    }
 
    menu.addSeparator();
+
+   // Generate Sounding action
+   if (!cfg.text_sounding.isEmpty() && cfg.on_sounding_requested)
+   {
+      QAction* const     soundingAction = menu.addAction(cfg.text_sounding);
+      common::Coordinate coord          = cfg.sounding_coordinate;
+      QObject::connect(
+         soundingAction,
+         &QAction::triggered,
+         receiver,
+         [receiver, coord, onSounding = cfg.on_sounding_requested]()
+         {
+            QTimer::singleShot(0,
+                               receiver,
+                               [receiver, coord, onSounding]()
+                               {
+                                  if (receiver && onSounding)
+                                  {
+                                     onSounding(coord);
+                                  }
+                               });
+         });
+      menu.addSeparator();
+   }
+
    appendRadar(menu, curMap);
 
    // Layers submenu

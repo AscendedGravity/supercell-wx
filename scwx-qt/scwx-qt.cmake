@@ -112,7 +112,6 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                  source/scwx/qt/manager/blitzortung_manager.hpp
                  source/scwx/qt/manager/download_manager.hpp
-                 source/scwx/qt/manager/gfs_manager.hpp
                  source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/hotkey_manager.hpp
                 source/scwx/qt/manager/log_manager.hpp
@@ -125,6 +124,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/radar_site_status_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
+                 source/scwx/qt/manager/sounding_manager.hpp
                  source/scwx/qt/manager/spc_outlook_manager.hpp
                  source/scwx/qt/manager/spc_md_manager.hpp
                  source/scwx/qt/manager/wis_manager.hpp
@@ -136,7 +136,6 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                  source/scwx/qt/manager/blitzortung_manager.cpp
                  source/scwx/qt/manager/download_manager.cpp
-                 source/scwx/qt/manager/gfs_manager.cpp
                  source/scwx/qt/manager/font_manager.cpp
                 source/scwx/qt/manager/hotkey_manager.cpp
                 source/scwx/qt/manager/log_manager.cpp
@@ -149,6 +148,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/radar_site_status_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
+                 source/scwx/qt/manager/sounding_manager.cpp
                  source/scwx/qt/manager/spc_outlook_manager.cpp
                   source/scwx/qt/manager/spc_md_manager.cpp
                  source/scwx/qt/manager/wis_manager.cpp
@@ -156,7 +156,6 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
                 source/scwx/qt/manager/thread_manager.cpp
                 source/scwx/qt/manager/timeline_manager.cpp
-                 source/scwx/qt/manager/gfs_manager.cpp
                  source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
              source/scwx/qt/map/mesoscale_discussion_layer.hpp
@@ -355,8 +354,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/serial_port_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
-           source/scwx/qt/ui/sounding_panel.hpp
-           source/scwx/qt/ui/sounding_parameters_widget.hpp
+           source/scwx/qt/ui/sounding_dialog.hpp
            source/scwx/qt/ui/threshold_line_edit_sync.hpp
            source/scwx/qt/ui/threshold_value_utility.hpp
             source/scwx/qt/ui/update_dialog.hpp
@@ -399,8 +397,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
            source/scwx/qt/ui/serial_port_dialog.cpp
-           source/scwx/qt/ui/sounding_panel.cpp
-           source/scwx/qt/ui/sounding_parameters_widget.cpp
+           source/scwx/qt/ui/sounding_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp
             source/scwx/qt/ui/wfo_dialog.cpp
             source/scwx/qt/ui/wis_details_dialog.cpp
@@ -494,24 +491,22 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/queue_counter.cpp
              source/scwx/qt/util/time.cpp
              source/scwx/qt/util/tooltip.cpp)
-set(HDR_VIEW source/scwx/qt/view/hodograph_widget.hpp
-             source/scwx/qt/view/level2_product_view.hpp
+set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
              source/scwx/qt/view/level3_raster_view.hpp
              source/scwx/qt/view/overlay_product_view.hpp
              source/scwx/qt/view/radar_product_view.hpp
              source/scwx/qt/view/radar_product_view_factory.hpp
-             source/scwx/qt/view/skewt_widget.hpp)
-set(SRC_VIEW source/scwx/qt/view/hodograph_widget.cpp
-             source/scwx/qt/view/level2_product_view.cpp
+             )
+set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
              source/scwx/qt/view/level3_product_view.cpp
              source/scwx/qt/view/level3_radial_view.cpp
              source/scwx/qt/view/level3_raster_view.cpp
              source/scwx/qt/view/overlay_product_view.cpp
              source/scwx/qt/view/radar_product_view.cpp
              source/scwx/qt/view/radar_product_view_factory.cpp
-             source/scwx/qt/view/skewt_widget.cpp)
+             )
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
