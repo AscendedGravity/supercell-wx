@@ -34,4 +34,3 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo Build completed successfully.
-pause
