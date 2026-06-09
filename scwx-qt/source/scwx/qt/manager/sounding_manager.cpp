@@ -137,9 +137,17 @@ public:
       QString binaryPath = SoundingManager::FindBinary();
       if (binaryPath.isEmpty())
       {
-         Q_EMIT self->SoundingError(
-            "sounding_plot binary not found. "
-            "Place it next to the application executable or add it to PATH.");
+         Q_EMIT self->SoundingError(QStringLiteral(
+            "sounding_plot binary not found.\n\n"
+            "The sounding feature requires the rustwx sounding_plot tool.\n\n"
+            "To install it:\n"
+            "  1. Install Rust from https://rustup.rs\n"
+            "  2. Run:\n"
+            "     cargo install --git "
+            "https://github.com/FahrenheitResearch/rustwx "
+            "rustwx-cli --bin sounding_plot\n\n"
+            "Then place sounding_plot.exe next to supercell-wx.exe "
+            "or ensure it is on your PATH."));
          return;
       }
 
