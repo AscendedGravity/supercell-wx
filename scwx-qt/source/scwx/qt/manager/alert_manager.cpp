@@ -207,13 +207,69 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
 
       if (activeAtLocation)
       {
+         // Always skip audio for archive-loaded events that began more than
+         // 2 minutes ago (initial bulk load), regardless of the new-only
+         // toggle.
+         if (scwx::util::time::now() - vtec.pVtec_.event_begin() >
+             std::chrono::minutes {2})
+         {
+            continue;
+         }
+
+         // If "Only Play When New" is enabled, skip sound for updates to
+         // existing events (action is not New).
+         if (audioSettings.alert_only_new().GetValue() &&
+             action != awips::PVtec::Action::New)
+         {
+            continue;
+         }
+
          logger_->info("Alert active at current location: {} {}.{} {}",
                        vtec.pVtec_.office_id(),
                        awips::GetPhenomenonCode(vtec.pVtec_.phenomenon()),
                        awips::PVtec::GetActionCode(vtec.pVtec_.action()),
                        vtec.pVtec_.event_tracking_number());
 
-         mediaManager_->Play(audioSettings.alert_sound_file().GetValue());
+         std::string soundFile;
+
+         // For tornado warnings, check for sub-category or observed overrides
+         if (phenomenon == awips::Phenomenon::Tornado)
+         {
+            // Priority: threat category > observed (Base only) > per-phenomenon
+            // > global
+            if (segment->threatCategory_ != awips::ibw::ThreatCategory::Base)
+            {
+               switch (segment->threatCategory_)
+               {
+               case awips::ibw::ThreatCategory::Considerable:
+                  soundFile =
+                     audioSettings.tornado_considerable_sound_file().GetValue();
+                  break;
+               case awips::ibw::ThreatCategory::Catastrophic:
+                  soundFile =
+                     audioSettings.tornado_catastrophic_sound_file().GetValue();
+                  break;
+               default:
+                  break;
+               }
+            }
+            else if (segment->observed_)
+            {
+               soundFile =
+                  audioSettings.tornado_observed_sound_file().GetValue();
+            }
+         }
+
+         if (soundFile.empty())
+         {
+            soundFile = audioSettings.alert_sound_file(phenomenon).GetValue();
+         }
+         if (soundFile.empty())
+         {
+            soundFile = audioSettings.alert_sound_file().GetValue();
+         }
+         mediaManager_->Play(soundFile);
+         break;
       }
    }
 }

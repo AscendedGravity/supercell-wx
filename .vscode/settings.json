@@ -102,5 +102,8 @@
     "[c]": {
         "editor.defaultFormatter": "xaver.clang-format"
     },
-    "python.terminal.activateEnvInCurrentTerminal": true
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "chat.tools.terminal.autoApprove": {
+        ".\\tools\\build-windows.bat": true
+    }
 }

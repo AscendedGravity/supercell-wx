@@ -40,6 +40,7 @@ public:
       alertWFO_.SetDefault("");
       ignoreMissingCodecs_.SetDefault(false);
       masterVolume_.SetDefault(100);
+      alertOnlyNew_.SetDefault(false);
 
       alertLatitude_.SetMinimum(-90.0);
       alertLatitude_.SetMaximum(90.0);
@@ -73,25 +74,47 @@ public:
 
       auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
       alertEnabled_.reserve(alertAudioPhenomena.size() + 1);
+      alertSoundFiles_.reserve(alertAudioPhenomena.size() + 1);
 
       for (auto& phenomenon : alertAudioPhenomena)
       {
          std::string phenomenonCode = awips::GetPhenomenonCode(phenomenon);
-         std::string name           = fmt::format("{}_enabled", phenomenonCode);
+         std::string enabledName    = fmt::format("{}_enabled", phenomenonCode);
+         std::string soundName = fmt::format("{}_sound_file", phenomenonCode);
 
-         auto result =
-            alertEnabled_.emplace(phenomenon, SettingsVariable<bool> {name});
+         auto enabledResult = alertEnabled_.emplace(
+            phenomenon, SettingsVariable<bool> {enabledName});
 
-         SettingsVariable<bool>& variable = result.first->second;
+         SettingsVariable<bool>& enabledVariable = enabledResult.first->second;
+         enabledVariable.SetDefault(kDefaultAlertEnabled_);
+         variables_.push_back(&enabledVariable);
 
-         variable.SetDefault(kDefaultAlertEnabled_);
+         auto soundResult = alertSoundFiles_.emplace(
+            phenomenon, SettingsVariable<std::string> {soundName});
 
-         variables_.push_back(&variable);
+         SettingsVariable<std::string>& soundVariable =
+            soundResult.first->second;
+         soundVariable.SetDefault("");
+         variables_.push_back(&soundVariable);
       }
+
+      tornadoBaseSoundFile_.SetDefault("");
+      tornadoConsiderableSoundFile_.SetDefault("");
+      tornadoCatastrophicSoundFile_.SetDefault("");
+      tornadoObservedSoundFile_.SetDefault("");
+
+      variables_.push_back(&tornadoBaseSoundFile_);
+      variables_.push_back(&tornadoConsiderableSoundFile_);
+      variables_.push_back(&tornadoCatastrophicSoundFile_);
+      variables_.push_back(&tornadoObservedSoundFile_);
+      variables_.push_back(&alertOnlyNew_);
 
       // Create a default disabled alert, not stored in the settings file
       alertEnabled_.emplace(kDefaultPhenomenon_,
                             SettingsVariable<bool> {"alert_disabled"});
+      alertSoundFiles_.emplace(
+         kDefaultPhenomenon_,
+         SettingsVariable<std::string> {"alert_sound_disabled"});
    }
 
    ~Impl()                       = default;
@@ -109,10 +132,21 @@ public:
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
    SettingsVariable<std::string> alertWFO_ {"alert_wfo"};
    SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
+   SettingsVariable<bool>         alertOnlyNew_ {"alert_only_new"};
    SettingsVariable<std::int64_t> masterVolume_ {"master_volume"};
+
+   SettingsVariable<std::string> tornadoBaseSoundFile_ {"to_base_sound_file"};
+   SettingsVariable<std::string> tornadoConsiderableSoundFile_ {
+      "to_considerable_sound_file"};
+   SettingsVariable<std::string> tornadoCatastrophicSoundFile_ {
+      "to_catastrophic_sound_file"};
+   SettingsVariable<std::string> tornadoObservedSoundFile_ {
+      "to_observed_sound_file"};
 
    std::unordered_map<awips::Phenomenon, SettingsVariable<bool>>
                                       alertEnabled_ {};
+   std::unordered_map<awips::Phenomenon, SettingsVariable<std::string>>
+                                      alertSoundFiles_ {};
    std::vector<SettingsVariableBase*> variables_ {};
 };
 
@@ -128,7 +162,12 @@ AudioSettings::AudioSettings() :
                       &p->alertCounty_,
                       &p->alertWFO_,
                       &p->ignoreMissingCodecs_,
-                      &p->masterVolume_});
+                      &p->masterVolume_,
+                      &p->alertOnlyNew_,
+                      &p->tornadoBaseSoundFile_,
+                      &p->tornadoConsiderableSoundFile_,
+                      &p->tornadoCatastrophicSoundFile_,
+                      &p->tornadoObservedSoundFile_});
    RegisterVariables(p->variables_);
    SetDefaults();
 
@@ -190,9 +229,50 @@ AudioSettings::alert_enabled(awips::Phenomenon phenomenon) const
    return alert->second;
 }
 
+SettingsVariable<std::string>&
+AudioSettings::alert_sound_file(awips::Phenomenon phenomenon) const
+{
+   auto alert = p->alertSoundFiles_.find(phenomenon);
+   if (alert != p->alertSoundFiles_.cend())
+   {
+      return alert->second;
+   }
+
+   // Fallback for unknown phenomenon
+   return p->alertSoundFile_;
+}
+
+SettingsVariable<std::string>& AudioSettings::tornado_base_sound_file() const
+{
+   return p->tornadoBaseSoundFile_;
+}
+
+SettingsVariable<std::string>&
+AudioSettings::tornado_considerable_sound_file() const
+{
+   return p->tornadoConsiderableSoundFile_;
+}
+
+SettingsVariable<std::string>&
+AudioSettings::tornado_catastrophic_sound_file() const
+{
+   return p->tornadoCatastrophicSoundFile_;
+}
+
+SettingsVariable<std::string>&
+AudioSettings::tornado_observed_sound_file() const
+{
+   return p->tornadoObservedSoundFile_;
+}
+
 SettingsVariable<bool>& AudioSettings::ignore_missing_codecs() const
 {
    return p->ignoreMissingCodecs_;
+}
+
+SettingsVariable<bool>& AudioSettings::alert_only_new() const
+{
+   return p->alertOnlyNew_;
 }
 
 SettingsVariable<std::int64_t>& AudioSettings::master_volume() const
@@ -217,7 +297,9 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
            lhs.p->alertWFO_ == rhs.p->alertWFO_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_ &&
+           lhs.p->alertSoundFiles_ == rhs.p->alertSoundFiles_ &&
            lhs.p->ignoreMissingCodecs_ == rhs.p->ignoreMissingCodecs_ &&
+           lhs.p->alertOnlyNew_ == rhs.p->alertOnlyNew_ &&
            lhs.p->masterVolume_ == rhs.p->masterVolume_);
 }
 
