@@ -40,6 +40,7 @@ public:
       alertWFO_.SetDefault("");
       ignoreMissingCodecs_.SetDefault(false);
       masterVolume_.SetDefault(100);
+      alertOnlyNew_.SetDefault(false);
 
       alertLatitude_.SetMinimum(-90.0);
       alertLatitude_.SetMaximum(90.0);
@@ -106,6 +107,7 @@ public:
       variables_.push_back(&tornadoConsiderableSoundFile_);
       variables_.push_back(&tornadoCatastrophicSoundFile_);
       variables_.push_back(&tornadoObservedSoundFile_);
+      variables_.push_back(&alertOnlyNew_);
 
       // Create a default disabled alert, not stored in the settings file
       alertEnabled_.emplace(kDefaultPhenomenon_,
@@ -130,6 +132,7 @@ public:
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
    SettingsVariable<std::string> alertWFO_ {"alert_wfo"};
    SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
+   SettingsVariable<bool>         alertOnlyNew_ {"alert_only_new"};
    SettingsVariable<std::int64_t> masterVolume_ {"master_volume"};
 
    SettingsVariable<std::string> tornadoBaseSoundFile_ {"to_base_sound_file"};
@@ -160,6 +163,7 @@ AudioSettings::AudioSettings() :
                       &p->alertWFO_,
                       &p->ignoreMissingCodecs_,
                       &p->masterVolume_,
+                      &p->alertOnlyNew_,
                       &p->tornadoBaseSoundFile_,
                       &p->tornadoConsiderableSoundFile_,
                       &p->tornadoCatastrophicSoundFile_,
@@ -266,6 +270,11 @@ SettingsVariable<bool>& AudioSettings::ignore_missing_codecs() const
    return p->ignoreMissingCodecs_;
 }
 
+SettingsVariable<bool>& AudioSettings::alert_only_new() const
+{
+   return p->alertOnlyNew_;
+}
+
 SettingsVariable<std::int64_t>& AudioSettings::master_volume() const
 {
    return p->masterVolume_;
@@ -290,6 +299,7 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_ &&
            lhs.p->alertSoundFiles_ == rhs.p->alertSoundFiles_ &&
            lhs.p->ignoreMissingCodecs_ == rhs.p->ignoreMissingCodecs_ &&
+           lhs.p->alertOnlyNew_ == rhs.p->alertOnlyNew_ &&
            lhs.p->masterVolume_ == rhs.p->masterVolume_);
 }
 

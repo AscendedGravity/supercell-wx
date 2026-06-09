@@ -207,6 +207,14 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
 
       if (activeAtLocation)
       {
+         // If "Only Play When New" is enabled, skip sound for updates to
+         // existing events (action is not New)
+         if (audioSettings.alert_only_new().GetValue() &&
+             action != awips::PVtec::Action::New)
+         {
+            continue;
+         }
+
          logger_->info("Alert active at current location: {} {}.{} {}",
                        vtec.pVtec_.office_id(),
                        awips::GetPhenomenonCode(vtec.pVtec_.phenomenon()),

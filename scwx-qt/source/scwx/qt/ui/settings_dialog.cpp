@@ -172,6 +172,7 @@ public:
           &tornadoConsiderableAudioSoundFile_,
           &tornadoCatastrophicAudioSoundFile_,
           &tornadoObservedAudioSoundFile_,
+          &alertOnlyNew_,
           &masterVolume_,
           &hoverTextWrap_,
           &tooltipMethod_,
@@ -318,6 +319,8 @@ public:
    settings::SettingsInterface<std::string>
       tornadoCatastrophicAudioSoundFile_ {};
    settings::SettingsInterface<std::string> tornadoObservedAudioSoundFile_ {};
+
+   settings::SettingsInterface<bool> alertOnlyNew_ {};
 
    settings::SettingsInterface<std::int64_t> masterVolume_ {};
 
@@ -1328,6 +1331,20 @@ void SettingsDialogImpl::SetupAudioTab()
    auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
    auto  alertAudioLayout =
       static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
+
+   // "Only Play When New" checkbox — global toggle to suppress audio for
+   // updates to existing events, playing only on newly issued alerts
+   {
+      QCheckBox* alertOnlyNewCheckBox = new QCheckBox(self_);
+      alertOnlyNewCheckBox->setText(
+         QString::fromStdString("Only Play When New"));
+
+      alertOnlyNew_.SetSettingsVariable(audioSettings.alert_only_new());
+      alertOnlyNew_.SetEditWidget(alertOnlyNewCheckBox);
+
+      alertAudioLayout->addWidget(
+         alertOnlyNewCheckBox, alertAudioLayout->rowCount(), 0, 1, -1);
+   }
 
    // Add header label for per-phenomenon sound overrides
    QLabel* perPhenomenonHeader = new QLabel(
