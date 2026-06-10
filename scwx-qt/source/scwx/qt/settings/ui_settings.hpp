@@ -28,6 +28,7 @@ public:
    [[nodiscard]] SettingsVariable<bool>& level2_settings_expanded() const;
    [[nodiscard]] SettingsVariable<bool>& level3_products_expanded() const;
    [[nodiscard]] SettingsVariable<bool>& level3_settings_expanded() const;
+   [[nodiscard]] SettingsVariable<bool>& satellite_products_expanded() const;
    [[nodiscard]] SettingsVariable<bool>& map_settings_expanded() const;
    [[nodiscard]] SettingsVariable<bool>& timeline_expanded() const;
    [[nodiscard]] SettingsVariable<bool>&        spc_outlook_expanded() const;

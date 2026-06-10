@@ -76,6 +76,9 @@
         <file>res/palettes/wct/KDP.pal</file>
         <file>res/palettes/wct/KDP2.pal</file>
         <file>res/palettes/wct/OHP.pal</file>
+        <file>res/palettes/wct/SAT_IR.pal</file>
+        <file>res/palettes/wct/SAT_VIS.pal</file>
+        <file>res/palettes/wct/SAT_WV.pal</file>
         <file>res/palettes/wct/SRV.pal</file>
         <file>res/palettes/wct/STP.pal</file>
         <file>res/palettes/wct/SW.pal</file>

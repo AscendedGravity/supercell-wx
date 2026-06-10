@@ -5,6 +5,7 @@
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/satellite_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
@@ -553,6 +554,12 @@ void MapWidgetImpl::ConnectSignals()
 {
    connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileUpdated,
+           widget_,
+           static_cast<void (QWidget::*)()>(&QWidget::update));
+
+   auto satelliteManager = manager::SatelliteManager::Instance();
+   connect(satelliteManager.get(),
+           &manager::SatelliteManager::DataUpdated,
            widget_,
            static_cast<void (QWidget::*)()>(&QWidget::update));
 
@@ -1207,6 +1214,18 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
          const std::string palette =
             (group == common::RadarProductGroup::Level2) ?
                common::GetLevel2Palette(common::GetLevel2Product(productName)) :
+            (group == common::RadarProductGroup::Satellite) ?
+               ((common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band01 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band06) ?
+                   "SAT_VIS" :
+                (common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band08 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band10) ?
+                   "SAT_WV" :
+                   "SAT_IR") :
                common::GetLevel3Palette(productCode);
 
          auto& paletteSetting =
@@ -1219,14 +1238,60 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
       }
       else if (update)
       {
-         radarProductView->Update();
+         if (group == common::RadarProductGroup::Satellite)
+         {
+            // When switching satellite bands, reload the color table since the
+            // palette type (VIS / WV / IR) may differ between bands.
+            // Note: SatelliteProductView::SelectProduct() (called at line 1080)
+            // already calls Update() internally, so we must NOT call
+            // radarProductView->Update() here to avoid double-fetching data
+            // and a stale-frame visual artifact.
+            const std::string palette =
+               ((common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band01 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band06) ?
+                   "SAT_VIS" :
+                (common::GetSatelliteBand(productName) >=
+                    common::SatelliteBand::Band08 &&
+                 common::GetSatelliteBand(productName) <=
+                    common::SatelliteBand::Band10) ?
+                   "SAT_WV" :
+                   "SAT_IR");
+
+            auto& paletteSetting =
+               settings::PaletteSettings::Instance().palette(palette);
+
+            p->colorPaletteConnection_ =
+               paletteSetting.changed_signal().connect(
+                  [this, palette](auto&&...) { p->UpdateColorTable(palette); });
+
+            p->UpdateColorTable(palette);
+         }
+         else
+         {
+            radarProductView->Update();
+         }
       }
    }
 
    if (p->autoRefreshEnabled_)
    {
-      p->radarProductManager_->EnableRefresh(
-         group, productName, true, p->uuid_);
+      if (group == common::RadarProductGroup::Satellite)
+      {
+         auto satelliteManager      = manager::SatelliteManager::Instance();
+         common::SatelliteBand band = common::GetSatelliteBand(productName);
+         if (band != common::SatelliteBand::Unknown)
+         {
+            satelliteManager->SelectBand(band);
+            satelliteManager->EnableRefresh(true);
+         }
+      }
+      else
+      {
+         p->radarProductManager_->EnableRefresh(
+            group, productName, true, p->uuid_);
+      }
    }
 }
 
@@ -1362,11 +1427,20 @@ void MapWidget::SetAutoRefresh(bool enabled)
 
       if (p->autoRefreshEnabled_ && radarProductView != nullptr)
       {
-         p->radarProductManager_->EnableRefresh(
-            radarProductView->GetRadarProductGroup(),
-            radarProductView->GetRadarProductName(),
-            true,
-            p->uuid_);
+         if (radarProductView->GetRadarProductGroup() ==
+             common::RadarProductGroup::Satellite)
+         {
+            auto satelliteManager = manager::SatelliteManager::Instance();
+            satelliteManager->EnableRefresh(true);
+         }
+         else
+         {
+            p->radarProductManager_->EnableRefresh(
+               radarProductView->GetRadarProductGroup(),
+               radarProductView->GetRadarProductName(),
+               true,
+               p->uuid_);
+         }
       }
 
       p->context_->overlay_product_view()->SetAutoRefresh(enabled);

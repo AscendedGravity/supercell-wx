@@ -10,6 +10,7 @@ namespace common
 static const std::unordered_map<RadarProductGroup, std::string>
    radarProductGroupName_ {{RadarProductGroup::Level2, "L2"},
                            {RadarProductGroup::Level3, "L3"},
+                           {RadarProductGroup::Satellite, "SAT"},
                            {RadarProductGroup::Unknown, "?"}};
 
 static const std::unordered_map<Level2Product, std::string> level2Name_ {
@@ -476,6 +477,73 @@ GetLevel3AwipsIdsByProduct(const std::string& productName)
    else
    {
       return level3AwipsProducts_.at("?");
+   }
+}
+
+static const std::unordered_map<SatelliteBand, std::string> satelliteBandName_ {
+   {SatelliteBand::Band01, "C01"},
+   {SatelliteBand::Band02, "C02"},
+   {SatelliteBand::Band03, "C03"},
+   {SatelliteBand::Band04, "C04"},
+   {SatelliteBand::Band05, "C05"},
+   {SatelliteBand::Band06, "C06"},
+   {SatelliteBand::Band07, "C07"},
+   {SatelliteBand::Band08, "C08"},
+   {SatelliteBand::Band09, "C09"},
+   {SatelliteBand::Band10, "C10"},
+   {SatelliteBand::Band11, "C11"},
+   {SatelliteBand::Band12, "C12"},
+   {SatelliteBand::Band13, "C13"},
+   {SatelliteBand::Band14, "C14"},
+   {SatelliteBand::Band15, "C15"},
+   {SatelliteBand::Band16, "C16"},
+   {SatelliteBand::Unknown, "?"}};
+
+static const std::unordered_map<SatelliteBand, std::string>
+   satelliteBandDescription_ {
+      {SatelliteBand::Band01, "Blue (0.47 µm)"},
+      {SatelliteBand::Band02, "Red (0.64 µm)"},
+      {SatelliteBand::Band03, "Veggie (0.86 µm)"},
+      {SatelliteBand::Band04, "Cirrus (1.37 µm)"},
+      {SatelliteBand::Band05, "Snow/Ice (1.61 µm)"},
+      {SatelliteBand::Band06, "Cloud Particle Size (2.24 µm)"},
+      {SatelliteBand::Band07, "Shortwave Window (3.89 µm)"},
+      {SatelliteBand::Band08, "Upper-Level Water Vapor (6.19 µm)"},
+      {SatelliteBand::Band09, "Mid-Level Water Vapor (6.93 µm)"},
+      {SatelliteBand::Band10, "Lower-Level Water Vapor (7.34 µm)"},
+      {SatelliteBand::Band11, "Cloud-Top Phase (8.44 µm)"},
+      {SatelliteBand::Band12, "Ozone (9.61 µm)"},
+      {SatelliteBand::Band13, "Clean Longwave Window (10.33 µm)"},
+      {SatelliteBand::Band14, "Longwave Window (11.19 µm)"},
+      {SatelliteBand::Band15, "Dirty Longwave Window (12.27 µm)"},
+      {SatelliteBand::Band16, "CO2 Longwave (13.27 µm)"},
+      {SatelliteBand::Unknown, "?"}};
+
+const std::string& GetSatelliteBandName(SatelliteBand band)
+{
+   return satelliteBandName_.at(band);
+}
+
+const std::string& GetSatelliteBandDescription(SatelliteBand band)
+{
+   return satelliteBandDescription_.at(band);
+}
+
+SatelliteBand GetSatelliteBand(const std::string& name)
+{
+   auto result = std::find_if(
+      satelliteBandName_.cbegin(),
+      satelliteBandName_.cend(),
+      [&](const std::pair<SatelliteBand, std::string>& pair) -> bool
+      { return pair.second == name; });
+
+   if (result != satelliteBandName_.cend())
+   {
+      return result->first;
+   }
+   else
+   {
+      return SatelliteBand::Unknown;
    }
 }
 

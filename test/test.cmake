@@ -47,6 +47,7 @@ set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/network.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
+                   source/scwx/util/satellite_reader.test.cpp
                    source/scwx/util/streams.test.cpp
                    source/scwx/util/strings.test.cpp
                    source/scwx/util/vectorbuf.test.cpp)

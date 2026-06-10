@@ -75,7 +75,7 @@ struct ColorTableConversions
    float    scale {1.0f};
 };
 
-static const std::array<std::pair<std::string, std::string>, 16>
+static const std::array<std::pair<std::string, std::string>, 19>
    kColorTableTypes_ {std::pair {"BR", "BR"},
                       std::pair {"BV", "BV"},
                       std::pair {"SW", "SW"},
@@ -91,6 +91,9 @@ static const std::array<std::pair<std::string, std::string>, 16>
                       std::pair {"SRV", "SRV"},
                       std::pair {"STP", "STP"},
                       std::pair {"VIL", "VIL"},
+                      std::pair {"SAT_VIS", "Satellite (Visible)"},
+                      std::pair {"SAT_IR", "Satellite (Infrared)"},
+                      std::pair {"SAT_WV", "Satellite (Water Vapor)"},
                       std::pair {"???", "Default"}};
 
 // Color table conversions for display, roughly based upon:
@@ -112,6 +115,9 @@ static const std::unordered_map<std::string, ColorTableConversions>
                             {"SRV", {0u, 255u, 128.0f, 2.0f}},
                             {"STP", {0u, 255u, 0.0f, 1.25f}},
                             {"VIL", {0u, 255u, 1.0f, 2.5f}},
+                            {"SAT_VIS", {0u, 255u, 0.0f, 255.0f}},
+                            {"SAT_IR", {180u, 330u, 0.0f, 1.0f}},
+                            {"SAT_WV", {180u, 330u, 0.0f, 1.0f}},
                             {"???", {0u, 15u, 0.0f, 1.0f}}};
 
 class SettingsDialogImpl

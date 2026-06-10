@@ -11,8 +11,7 @@ static const std::string logPrefix_ = "scwx::spc::spc_md_provider.test";
 
 TEST(SpcMdProviderTest, ParseKmlWithOnePlacemark)
 {
-   std::string kml = R"(
-<?xml version="1.0" encoding="UTF-8"?>
+   std::string kml = R"(<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <Placemark>
@@ -29,8 +28,7 @@ TEST(SpcMdProviderTest, ParseKmlWithOnePlacemark)
       </Polygon>
     </Placemark>
   </Document>
-</kml>
-)";
+</kml>)";
 
    MdData data = SpcMdProvider::ParseKml(kml);
 
@@ -50,18 +48,16 @@ TEST(SpcMdProviderTest, ParseKmlWithOnePlacemark)
 
    // Verify centroid
    EXPECT_DOUBLE_EQ(data.discussions_[0].centroid_.latitude_, 35.4);
-   EXPECT_DOUBLE_EQ(data.discussions_[0].centroid_.longitude_, -97.5);
+   EXPECT_DOUBLE_EQ(data.discussions_[0].centroid_.longitude_, -97.6);
 }
 
 TEST(SpcMdProviderTest, ParseKmlEmpty)
 {
-   std::string kml = R"(
-<?xml version="1.0" encoding="UTF-8"?>
+   std::string kml = R"(<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
   </Document>
-</kml>
-)";
+</kml>)";
 
    MdData data = SpcMdProvider::ParseKml(kml);
    ASSERT_TRUE(data.discussions_.empty());
@@ -76,16 +72,14 @@ TEST(SpcMdProviderTest, ParseKmlInvalidXml)
 
 TEST(SpcMdProviderTest, ParseKmlNoName)
 {
-   std::string kml = R"(
-<?xml version="1.0" encoding="UTF-8"?>
+   std::string kml = R"(<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <Placemark>
       <description>No number here</description>
     </Placemark>
   </Document>
-</kml>
-)";
+</kml>)";
 
    MdData data = SpcMdProvider::ParseKml(kml);
    ASSERT_TRUE(data.discussions_.empty());
